@@ -1,0 +1,21 @@
+Today 2026-11-18 night, I visted around my hometown's annual
+pagoda festival, at this carnival a some of my friends are setting up
+street-snack stall; so I paid them a visit, and while observing their operations,
+I identified two problems, they have no proper checkout system.
+
+Therefore I am going to vibe-code a easy to use, fully self-contained, a 
+single-file HTML application for them.
+
+2026-11-18 23:46:44
+First I want to make it's workflow very easy to use, big GUI and least amounts of steps for
+checkout first, and also json exportable and importable sale log.
+So my priorities are:
+
+Big GUI: Large buttons, readable text, and touch-friendly controls.
+Minimum steps: Complete a checkout with as few interactions as possible.
+Easy to learn: No technical knowledge or training required.
+Saved sale logs: working along with importable and exportable sale logs in json files.
+Self-contained: Everything runs inside a single HTML file.
+
+2026-11-19 00:00:59
+Now i starts planning GUI and back-bone system, 

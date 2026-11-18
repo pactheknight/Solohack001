@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0f172a">
+<title>Stall POS — Street Snacks</title>
+<style>
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;margin:0}
+  body{
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    background:#eef2f7;color:#0f172a;
+    -webkit-user-select:none;user-select:none;
+    touch-action:manipulation;overscroll-behavior:none;
+  }
+  button{font-family:inherit;cursor:pointer;touch-action:manipulation}
+  input{font-family:inherit}
+  .app{display:flex;flex-direction:column;height:100vh;height:100dvh}
+
+  /* ============ TOP BAR ============ */
+  .topbar{display:flex;align-items:center;gap:10px;padding:8px 12px;background:#0f172a;color:#fff;
+          flex-wrap:wrap;box-shadow:0 2px 10px rgba(15,23,42,.25);z-index:5}
+  .brand{font-weight:800;font-size:18px;letter-spacing:.3px;white-space:nowrap}
+  .stat{background:rgba(255,255,255,.09);border-radius:12px;padding:4px 12px;line-height:1.15}
+  .stat-label{font-size:10px;text-transform:uppercase;letter-spacing:.8px;opacity:.6;font-weight:700}
+  .stat-value{font-size:17px;font-weight:800;white-space:nowrap}
+  .spacer{flex:1}
+  .tbtn{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.1);
+        border:1px solid rgba(255,255,255,.16);color:#fff;border-radius:12px;padding:0 14px;
+        height:46px;font-size:15px;font-weight:700;transition:.1s}
+  .tbtn:active{background:rgba(255,255,255,.28);transform:scale(.97)}
+
+  /* ============ MAIN ============ */
+  .main{flex:1;display:flex;gap:12px;padding:12px;overflow:hidden;min-height:0}
+  .products-wrap{flex:1;overflow-y:auto;min-width:0;padding:2px;-webkit-overflow-scrolling:touch}
+  .product-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));
+                gap:12px;align-content:start}
+  .p-btn{background:#fff;border:2px solid #e2e8f0;border-radius:18px;padding:12px 8px;
+         min-height:112px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+         gap:3px;font-size:16px;font-weight:700;color:#0f172a;transition:.08s;
+         box-shadow:0 1px 3px rgba(15,23,42,.07)}
+  .p-btn:active{transform:scale(.95);background:#eef2ff;border-color:#a5b4fc}
+  .p-emoji{font-size:34px;line-height:1}
+  .p-name{text-align:center;line-height:1.15}
+  .p-price{font-size:14px;color:#64748b;font-weight:800}
+
+  /* ============ CART ============ */
+  .cart{width:390px;flex:0 0 390px;background:#fff;border-radius:20px;padding:12px;
+        display:flex;flex-direction:column;min-height:0;box-shadow:0 4px 24px rgba(15,23,42,.08)}
+  .cart-top{display:flex;align-items:center;justify-content:space-between;
+            font-weight:800;font-size:16px;color:#334155;padding:2px 4px}
+  .pill{background:#0f172a;color:#fff;border-radius:999px;padding:2px 12px;font-size:14px;font-weight:800}
+  .cart-items{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:8px;
+              margin:10px 0;min-height:0;-webkit-overflow-scrolling:touch}
+  .cart-empty{color:#94a3b8;text-align:center;padding:34px 10px;font-size:17px;font-weight:600}
+  .ci{display:flex;align-items:center;gap:8px;padding:7px 9px;background:#f8fafc;
+      border:1px solid #e2e8f0;border-radius:14px}
+  .ci-name{flex:1;min-width:0;font-weight:800;font-size:16px;display:flex;flex-direction:column}
+  .ci-name span{font-weight:600;font-size:11.5px;color:#94a3b8}
+  .ci-qty{display:flex;align-items:center;gap:3px}
+  .qbtn{width:44px;height:44px;border-radius:12px;border:1px solid #dbe3ec;background:#fff;
+        font-size:22px;font-weight:800;color:#0f172a;line-height:1;display:flex;
+        align-items:center;justify-content:center}
+  .qbtn:active{background:#e2e8f0;transform:scale(.94)}
+  .qnum{min-width:30px;text-align:center;font-size:20px;font-weight:900}
+  .ci-total{width:88px;text-align:right;font-weight:900;font-size:16px}
+  .cart-bottom{border-top:2px dashed #dbe3ec;padding-top:10px}
+  .total-row{display:flex;justify-content:space-between;align-items:baseline;
+             font-weight:800;color:#334155;font-size:16px;padding:0 4px 8px}
+  .total-row b{font-size:34px;font-weight:900;color:#0f172a;letter-spacing:-.5px}
+  .cart-actions{display:flex;gap:10px}
+  .btn-clear{width:86px;height:72px;border-radius:18px;background:#fff;border:2px solid #dbe3ec;
+             font-size:15px;font-weight:800;color:#64748b;flex:0 0 auto}
+  .btn-clear:active{background:#f1f5f9}
+  .btn-pay{flex:1;height:72px;border-radius:18px;border:none;color:#fff;
+           background:linear-gradient(180deg,#22c55e,#16a34a);
+           font-size:clamp(18px,2.2vw,25px);font-weight:900;letter-spacing:.3px;
+           box-shadow:0 6px 0 #15803d;transition:.08s;padding:0 10px}
+  .btn-pay:active{transform:translateY(3px);box-shadow:0 3px 0 #15803d}
+  .btn-pay:disabled{background:#cbd5e1;color:#94a3b8;box-shadow:none;transform:none}
+
+  /* ============ MODALS ============ */
+  .backdrop{position:fixed;inset:0;background:rgba(15,23,42,.62);display:none;
+            align-items:center;justify-content:center;padding:14px;z-index:50}
+  .backdrop.show{display:flex}
+  .modal{background:#fff;border-radius:22px;padding:18px;width:100%;max-width:520px;
+         max-height:92dvh;overflow:auto;box-shadow:0 24px 70px rgba(0,0,0,.35);
+         animation:pop .16s ease-out}
+  .modal.wide{max-width:780px}
+  @keyframes pop{from{transform:scale(.94);opacity:.5}to{transform:scale(1);opacity:1}}
+  .modal-title{font-size:19px;font-weight:900;color:#334155;margin-bottom:12px}
+  .pay-total{font-size:46px;font-weight:900;text-align:center;letter-spacing:-1px;margin:2px 0 14px}
+  .pay-label{font-size:13px;font-weight:800;color:#94a3b8;text-transform:uppercase;
+             letter-spacing:.8px;margin-bottom:8px}
+  .tender-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px}
+  .tender-btn{padding:16px 8px;border-radius:14px;border:2px solid #dbe3ec;background:#fff;
+              font-size:17px;font-weight:800;color:#0f172a;transition:.08s}
+  .tender-btn:active{transform:scale(.96)}
+  .tender-btn.sel{border-color:#16a34a;background:#dcfce7;color:#15803d}
+  #tenderInput{margin-top:10px;width:100%;height:60px;border-radius:14px;border:2px solid #dbe3ec;
+               font-size:22px;font-weight:800;padding:0 16px;text-align:center}
+  #tenderInput:focus{outline:none;border-color:#6366f1}
+  .change-box{min-height:32px;margin-top:12px;text-align:center;font-size:23px;
+              font-weight:900;color:#15803d}
+  .change-box.bad{color:#dc2626}
+  .btn-complete{width:100%;height:74px;margin-top:12px;border-radius:18px;border:none;color:#fff;
+                background:linear-gradient(180deg,#22c55e,#16a34a);font-size:22px;font-weight:900;
+                box-shadow:0 6px 0 #15803d;transition:.08s;padding:0 10px}
+  .btn-complete:active{transform:translateY(3px);box-shadow:0 3px 0 #15803d}
+  .btn-complete:disabled{background:#cbd5e1;box-shadow:none;color:#94a3b8;transform:none}
+  .btn-cancel{width:100%;height:56px;margin-top:10px;border-radius:14px;border:none;
+              background:#f1f5f9;color:#475569;font-size:17px;font-weight:800}
+  .btn-cancel:active{background:#e2e8f0}
+
+  /* history */
+  .hsummary{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+  .hs{flex:1;min-width:110px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;
+      padding:10px 12px;display:flex;flex-direction:column}
+  .hs b{font-size:19px;font-weight:900}
+  .hs span{font-size:11px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:.6px}
+  .hlist{max-height:48vh;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding-right:2px}
+  .hrow{display:flex;align-items:center;gap:8px;padding:10px 12px;background:#f8fafc;
+        border:1px solid #e2e8f0;border-radius:14px}
+  .hmain{flex:1;min-width:0}
+  .htop{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+  .htime{font-size:13px;font-weight:800;color:#94a3b8}
+  .hamt{font-size:17px;font-weight:900;white-space:nowrap}
+  .hitems{font-size:14px;color:#475569;font-weight:600;margin-top:2px;
+          overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .hdel{width:42px;height:42px;flex:0 0 auto;border-radius:12px;border:1px solid #fecaca;
+        background:#fff;color:#dc2626;font-size:16px;font-weight:900}
+  .hdel:active{background:#fee2e2}
+  .row-btns{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+  .row-btns button{flex:1;min-width:110px;height:56px;border-radius:14px;border:none;
+                   font-size:16px;font-weight:800}
+  .btn-primary{background:#0f172a;color:#fff}
+  .btn-primary:active{background:#334155}
+  .btn-sec{background:#f1f5f9;color:#475569}
+  .btn-sec:active{background:#e2e8f0}
+  .btn-danger{background:#fee2e2;color:#dc2626}
+  .btn-danger:active{background:#fecaca}
+
+  /* menu editor */
+  .field{display:flex;align-items:center;gap:10px;margin-bottom:14px;
+         font-size:15px;font-weight:800;color:#475569}
+  .field input{width:110px;height:48px;border-radius:12px;border:2px solid #dbe3ec;
+               font-size:18px;font-weight:800;padding:0 12px;text-align:center}
+  .menu-list{display:flex;flex-direction:column;gap:8px;max-height:44vh;overflow-y:auto}
+  .mrow{display:grid;grid-template-columns:62px 1fr 108px 44px;gap:8px;align-items:center}
+  .mrow input{height:50px;border-radius:12px;border:2px solid #dbe3ec;font-size:16px;
+              font-weight:700;padding:0 10px;width:100%;min-width:0}
+  .mrow input:focus{outline:none;border-color:#6366f1}
+  .m-emoji{text-align:center;font-size:22px !important;padding:0 !important}
+  .m-price{text-align:right}
+  .m-del{height:50px;border-radius:12px;border:1px solid #fecaca;background:#fff;
+         color:#dc2626;font-size:15px;font-weight:900}
+  .m-del:active{background:#fee2e2}
+  .btn-add{width:100%;height:54px;margin-top:10px;border-radius:14px;border:2px dashed #cbd5e1;
+           background:#f8fafc;color:#475569;font-size:16px;font-weight:800}
+  .btn-add:active{background:#eef2f7}
+
+  .empty{color:#94a3b8;text-align:center;padding:26px;font-size:16px;font-weight:700}
+
+  /* toast */
+  #toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,20px);
+         background:#0f172a;color:#fff;padding:15px 26px;border-radius:16px;font-size:18px;
+         font-weight:800;opacity:0;transition:.2s;pointer-events:none;z-index:100;
+         box-shadow:0 10px 30px rgba(0,0,0,.3);white-space:nowrap}
+  #toast.show{opacity:1;transform:translate(-50%,0)}
+
+  /* ============ RESPONSIVE ============ */
+  @media (max-width:960px){
+    .brand{display:none}
+    .main{flex-direction:column;padding:8px;gap:8px}
+    .cart{width:100%;flex:0 0 auto;max-height:52dvh;border-radius:16px;padding:10px}
+    .product-grid{grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:8px}
+    .p-btn{min-height:96px;padding:8px 4px;border-radius:14px;font-size:14px}
+    .p-emoji{font-size:28px}
+    .p-price{font-size:12px}
+    .topbar{gap:6px;padding:6px 8px}
+    .tbtn{padding:0 11px;height:44px;font-size:14px}
+    .tbtn span{display:none}
+    .stat{padding:3px 10px}
+    .stat-value{font-size:15px}
+    .total-row b{font-size:28px}
+    .btn-pay{height:64px}
+    .btn-clear{height:64px;width:74px;font-size:14px}
+    .pay-total{font-size:38px}
+    .qbtn{width:42px;height:42px}
+    .ci-total{width:78px;font-size:15px}
+  }
+  @media (max-width:480px){
+    .mrow{grid-template-columns:52px 1fr 90px 42px}
+    .modal{padding:14px;border-radius:18px}
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ================= TOP BAR ================= -->
+  <header class="topbar">
+    <div class="brand">🏮 Stall POS</div>
+    <div class="stat">
+      <div class="stat-label">Today</div>
+      <div class="stat-value" id="statToday">—</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Sales</div>
+      <div class="stat-value" id="statCount">0</div>
+    </div>
+    <div class="spacer"></div>
+    <button class="tbtn" id="btnHistory" title="Sales history">📋<span>History</span></button>
+    <button class="tbtn" id="btnMenu" title="Edit menu">🍜<span>Menu</span></button>
+    <button class="tbtn" id="btnExport" title="Export sales to JSON">💾<span>Export</span></button>
+    <button class="tbtn" id="btnImport" title="Import sales from JSON">📂<span>Import</span></button>
+    <input type="file" id="fileInput" accept="application/json,.json" hidden>
+  </header>
+
+  <!-- ================= MAIN ================= -->
+  <main class="main">
+    <section class="products-wrap">
+      <div class="product-grid" id="productGrid"></div>
+    </section>
+
+    <aside class="cart">
+      <div class="cart-top">
+        <span>🧾 Current order</span>
+        <span class="pill" id="cartCount">0</span>
+      </div>
+      <div class="cart-items" id="cartItems"></div>
+      <div class="cart-bottom">
+        <div class="total-row"><span>Total</span><b id="totalText">0</b></div>
+        <div class="cart-actions">
+          <button class="btn-clear" id="btnClear">Clear</button>
+          <button class="btn-pay" id="btnPay" disabled>PAY</button>
+        </div>
+      </div>
+    </aside>
+  </main>
+</div>
+
+<!-- ================= PAY MODAL ================= -->
+<div class="backdrop" id="payModal">
+  <div class="modal">
+    <div class="modal-title">💵 Payment</div>
+    <div class="pay-total" id="payTotal">0</div>
+    <div class="pay-label">Cash received</div>
+    <div class="tender-grid" id="tenderGrid"></div>
+    <input type="number" id="tenderInput" inputmode="decimal" placeholder="Other amount…">
+    <div class="change-box" id="changeBox"></div>
+    <button class="btn-complete" id="btnComplete">COMPLETE</button>
+    <button class="btn-cancel" id="btnPayCancel">Cancel</button>
+  </div>
+</div>
+
+<!-- ================= HISTORY MODAL ================= -->
+<div class="backdrop" id="historyModal">
+  <div class="modal wide">
+    <div class="modal-title">📋 Sales history</div>
+    <div class="hsummary" id="historySummary"></div>
+    <div class="hlist" id="historyList"></div>
+    <div class="row-btns">
+      <button class="btn-sec" id="btnHistoryExport">💾 Export</button>
+      <button class="btn-danger" id="btnClearAll">🗑 Clear all</button>
+      <button class="btn-primary" id="btnHistoryClose">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= MENU MODAL ================= -->
+<div class="backdrop" id="menuModal">
+  <div class="modal wide">
+    <div class="modal-title">🍜 Menu &amp; settings</div>
+    <label class="field">Currency
+      <input id="currencyInput" maxlength="6" placeholder="Ks">
+    </label>
+    <div class="menu-list" id="menuList"></div>
+    <button class="btn-add" id="btnAddProduct">+ Add item</button>
+    <div class="row-btns">
+      <button class="btn-sec" id="btnMenuCancel">Cancel</button>
+      <button class="btn-primary" id="btnMenuSave">Save menu</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* =========================================================
+   Stall POS — single-file point of sale
+   ========================================================= */
+
+/* ---------- storage keys ---------- */
+const K_PROD  = 'stallpos.products.v1';
+const K_SALES = 'stallpos.sales.v1';
+const K_CFG   = 'stallpos.config.v1';
+
+function loadJSON(key, def){
+  try{
+    const raw = localStorage.getItem(key);
+    if(raw === null) return def;
+    const v = JSON.parse(raw);
+    return (v === null || v === undefined) ? def : v;
+  }catch(e){ return def; }
+}
+function saveJSON(key, val){
+  try{ localStorage.setItem(key, JSON.stringify(val)); }
+  catch(e){ alert('Could not save data.\n' + e.message); }
+}
+
+/* ---------- helpers ---------- */
+const $    = id => document.getElementById(id);
+const esc  = s => String(s === undefined || s === null ? '' : s)
+                   .replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid  = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+const r2   = n => Math.round((Number(n) || 0) * 100) / 100;
+const pad  = n => String(n).padStart(2, '0');
+const dayKey = d => { const x = new Date(d);
+                      return x.getFullYear() + '-' + pad(x.getMonth() + 1) + '-' + pad(x.getDate()); };
+const todayKey = () => dayKey(new Date());
+
+/* ---------- default menu ---------- */
+const DEFAULT_PRODUCTS = [
+  { id:'p1', emoji:'🍢', name:'Skewer',    price:1000 },
+  { id:'p2', emoji:'🍜', name:'Noodles',   price:3000 },
+  { id:'p3', emoji:'🍡', name:'Sweets',    price:1000 },
+  { id:'p4', emoji:'🥤', name:'Drink',     price:1000 },
+  { id:'p5', emoji:'🍿', name:'Popcorn',   price:1500 },
+  { id:'p6', emoji:'🍦', name:'Ice cream', price:1500 }
+];
+
+/* ---------- state ---------- */
+let products = loadJSON(K_PROD, null) || DEFAULT_PRODUCTS.map(p => ({...p}));
+let sales    = loadJSON(K_SALES, []) || [];
+let cfg      = Object.assign({ currency: 'Ks' }, loadJSON(K_CFG, {}) || {});
+let cart     = [];            // { pid, name, price, qty }
+let menuDraft = [];           // temporary copy while editing the menu
+let pay      = { total: 0, tendered: 0, done: false };
+
+/* ---------- money ---------- */
+function money(n){
+  n = r2(n);
+  const s = Number.isInteger(n) ? n.toLocaleString('en-US') : n.toFixed(2);
+  return (cfg.currency ? cfg.currency + ' ' : '') + s;
+}
+
+/* ---------- toast ---------- */
+let toastTimer;
+function toast(msg){
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 1800);
+}
+
+/* =========================================================
+   PRODUCT GRID
+   ========================================================= */
+function renderProducts(){
+  const g = $('productGrid');
+  g.innerHTML = '';
+  if(!products.length){
+    g.innerHTML = '<div class="empty" style="grid-column:1/-1">No items yet.<br>Tap 🍜 to add your menu.</div>';
+    return;
+  }
+  products.forEach(p => {
+    const b = document.createElement('button');
+    b.className = 'p-btn';
+    b.innerHTML =
+      '<span class="p-emoji">' + esc(p.emoji || '🍽️') + '</span>' +
+      '<span class="p-name">'  + esc(p.name) + '</span>' +
+      '<span class="p-price">' + money(p.price) + '</span>';
+    b.addEventListener('click', () => addToCart(p));
+    g.appendChild(b);
+  });
+}
+
+function addToCart(p){
+  const found = cart.find(c => c.pid === p.id);
+  if(found) found.qty++;
+  else cart.push({ pid: p.id, name: p.name, price: p.price, qty: 1 });
+  renderCart();
+}
+
+/* =========================================================
+   CART
+   ========================================================= */
+function cartTotal(){ return r2(cart.reduce((s, i) => s + i.price * i.qty, 0)); }
+function cartQty(){   return cart.reduce((s, i) => s + i.qty, 0); }
+
+function renderCart(){
+  const wrap = $('cartItems');
+  wrap.innerHTML = '';
+
+  if(!cart.length){
+    wrap.innerHTML = '<div class="cart-empty">👈 Tap an item to start</div>';
+  } else {
+    cart.forEach((it, i) => {
+      const row = document.createElement('div');
+      row.className = 'ci';
+      row.innerHTML =
+        '<div class="ci-name">' + esc(it.name) +
+          '<span>' + money(it.price) + ' each</span></div>' +
+        '<div class="ci-qty">' +
+          '<button class="qbtn" data-a="minus">−</button>' +
+          '<span class="qnum">' + it.qty + '</span>' +
+          '<button class="qbtn" data-a="plus">+</button>' +
+        '</div>' +
+        '<div class="ci-total">' + money(it.price * it.qty) + '</div>';
+
+      row.querySelector('[data-a="minus"]').addEventListener('click', () => {
+        it.qty--;
+        if(it.qty <= 0) cart.splice(i, 1);
+        renderCart();
+      });
+      row.querySelector('[data-a="plus"]').addEventListener('click', () => {
+        it.qty++;
+        renderCart();
+      });
+      wrap.appendChild(row);
+    });
+  }
+
+  const total = cartTotal();
+  $('totalText').textContent = money(total);
+  $('cartCount').textContent = cartQty();
+  const payBtn = $('btnPay');
+  payBtn.disabled = cart.length === 0;
+  payBtn.textContent = cart.length ? 'PAY  ' + money(total) : 'PAY';
+}
+
+/* =========================================================
+   STATS
+   ========================================================= */
+function renderStats(){
+  const t = todayKey();
+  let sum = 0, count = 0;
+  sales.forEach(s => {
+    if(dayKey(s.ts) === t){ sum += (s.total || 0); count++; }
+  });
+  $('statToday').textContent = money(sum);
+  $('statCount').textContent = count;
+}
+
+/* =========================================================
+   PAY FLOW
+   ========================================================= */
+function niceTenders(total){
+  const steps = [];
+  for(let k = -2; k <= 6; k++){
+    steps.push(r2(1 * Math.pow(10, k)));
+    steps.push(r2(5 * Math.pow(10, k)));
+  }
+  steps.sort((a, b) => a - b);
+  const out = [];
+  for(const s of steps){
+    if(s <= 0) continue;
+    const v = r2(Math.ceil(total / s) * s);
+    if(v > total + 1e-9 && out.indexOf(v) === -1) out.push(v);
+    if(out.length >= 3) break;
+  }
+  return out;
+}
+
+function openPay(){
+  if(!cart.length) return;
+  pay.total    = cartTotal();
+  pay.tendered = pay.total;
+  pay.done     = false;
+  $('payTotal').textContent = money(pay.total);
+  $('tenderInput').value = '';
+  renderTenders();
+  $('payModal').classList.add('show');
+}
+
+function renderTenders(){
+  const grid = $('tenderGrid');
+  grid.innerHTML = '';
+  const opts = [{ label: 'Exact', value: pay.total }];
+  niceTenders(pay.total).forEach(v => opts.push({ label: money(v), value: v }));
+
+  opts.forEach(o => {
+    const b = document.createElement('button');
+    b.className = 'tender-btn' + (Math.abs(o.value - pay.tendered) < 0.005 ? ' sel' : '');
+    b.textContent = o.label;
+    b.addEventListener('click', () => {
+      pay.tendered = o.value;
+      $('tenderInput').value = '';
+      renderTenders();
+    });
+    grid.appendChild(b);
+  });
+  updateChange();
+}
+
+function updateChange(){
+  const diff = r2(pay.tendered - pay.total);
+  const box  = $('changeBox');
+  const btn  = $('btnComplete');
+
+  if(diff < -0.005){
+    box.textContent = 'Short by ' + money(Math.abs(diff));
+    box.className = 'change-box bad';
+    btn.disabled = true;
+  } else if(diff > 0.005){
+    box.textContent = 'Change: ' + money(diff);
+    box.className = 'change-box';
+    btn.disabled = false;
+  } else {
+    box.textContent = '';
+    box.className = 'change-box';
+    btn.disabled = false;
+  }
+  btn.textContent = '✅ COMPLETE — ' + money(pay.total);
+}
+
+function completeSale(){
+  if(pay.done) return;
+  if(pay.tendered < pay.total - 0.005) return;
+  if(!cart.length) return;
+
+  pay.done = true;
+
+  const sale = {
+    id: uid(),
+    ts: new Date().toISOString(),
+    items: cart.map(c => ({ name: c.name, price: c.price, qty: c.qty })),
+    total:    r2(pay.total),
+    tendered: r2(pay.tendered),
+    change:   r2(pay.tendered - pay.total)
+  };
+
+  sales.push(sale);
+  saveJSON(K_SALES, sales);
+
+  cart = [];
+  $('payModal').classList.remove('show');
+  renderCart();
+  renderStats();
+  toast('Saved ✓  ' + money(sale.total));
+}
+
+/* =========================================================
+   HISTORY
+   ========================================================= */
+function openHistory(){
+  renderHistory();
+  $('historyModal').classList.add('show');
+}
+
+function renderHistory(){
+  const list = $('historyList');
+  const totalAll   = sales.reduce((s, x) => s + (x.total || 0), 0);
+  const t          = todayKey();
+  const totalToday = sales.filter(s => dayKey(s.ts) === t).reduce((s, x) => s + (x.total || 0), 0);
+
+  $('historySummary').innerHTML =
+    '<div class="hs"><b>' + sales.length + '</b><span>sales (all)</span></div>' +
+    '<div class="hs"><b>' + money(totalAll) + '</b><span>total (all)</span></div>' +
+    '<div class="hs"><b>' + money(totalToday) + '</b><span>today</span></div>';
+
+  const sorted = sales.slice().sort((a, b) => new Date(b.ts) - new Date(a.ts));
+
+  if(!sorted.length){
+    list.innerHTML = '<div class="empty">No sales recorded yet.</div>';
+    return;
+  }
+
+  list.innerHTML = '';
+  sorted.forEach(s => {
+    const d = new Date(s.ts);
+    const time = pad(d.getHours()) + ':' + pad(d.getMinutes());
+    const dateLabel = dayKey(d) === t ? 'Today' : (pad(d.getDate()) + '/' + pad(d.getMonth() + 1));
+    const items = (s.items || []).map(i => i.qty + '× ' + i.name).join(', ');
+
+    const row = document.createElement('div');
+    row.className = 'hrow';
+    row.innerHTML =
+      '<div class="hmain">' +
+        '<div class="htop"><span class="htime">' + dateLabel + ' ' + time + '</span>' +
+        '<span class="hamt">' + money(s.total) + '</span></div>' +
+        '<div class="hitems">' + esc(items) + '</div>' +
+      '</div>' +
+      '<button class="hdel" title="Delete this sale">✕</button>';
+
+    row.querySelector('.hdel').addEventListener('click', () => {
+      if(!confirm('Delete this sale?\n' + money(s.total) + '\n' + items)) return;
+      sales = sales.filter(x => x.id !== s.id);
+      saveJSON(K_SALES, sales);
+      renderHistory();
+      renderStats();
+    });
+
+    list.appendChild(row);
+  });
+}
+
+/* =========================================================
+   MENU EDITOR
+   ========================================================= */
+function openMenu(){
+  menuDraft = products.map(p => ({...p}));
+  $('currencyInput').value = cfg.currency;
+  renderMenuList();
+  $('menuModal').classList.add('show');
+}
+
+function renderMenuList(){
+  const wrap = $('menuList');
+  wrap.innerHTML = '';
+
+  if(!menuDraft.length){
+    wrap.innerHTML = '<div class="empty">No items. Tap “+ Add item”.</div>';
+    return;
+  }
+
+  menuDraft.forEach((p, idx) => {
+    const row = document.createElement('div');
+    row.className = 'mrow';
+    row.dataset.id = p.id || '';
+    row.innerHTML =
+      '<input class="m-emoji" maxlength="4" value="' + esc(p.emoji || '') + '" aria-label="Emoji">' +
+      '<input class="m-name" value="' + esc(p.name || '') + '" placeholder="Item name">' +
+      '<input class="m-price" type="number" inputmode="decimal" value="' +
+        (p.price === undefined ? '' : p.price) + '" placeholder="Price">' +
+      '<button class="m-del" title="Remove">✕</button>';
+
+    row.querySelector('.m-del').addEventListener('click', () => {
+      menuDraft.splice(idx, 1);
+      renderMenuList();
+    });
+    wrap.appendChild(row);
+  });
+}
+
+function saveMenu(){
+  const rows = $('menuList').querySelectorAll('.mrow');
+  const next = [];
+
+  rows.forEach(r => {
+    const name  = r.querySelector('.m-name').value.trim();
+    const price = parseFloat(r.querySelector('.m-price').value);
+    if(!name) return;
+    next.push({
+      id:    r.dataset.id || uid(),
+      emoji: r.querySelector('.m-emoji').value.trim() || '🍽️',
+      name:  name,
+      price: isFinite(price) ? r2(price) : 0
+    });
+  });
+
+  products = next;
+  cfg.currency = $('currencyInput').value.trim();
+
+  saveJSON(K_PROD, products);
+  saveJSON(K_CFG, cfg);
+
+  $('menuModal').classList.remove('show');
+  renderProducts();
+  renderCart();
+  renderStats();
+  toast('Menu saved ✓');
+}
+
+/* =========================================================
+   EXPORT / IMPORT
+   ========================================================= */
+function exportData(){
+  const data = {
+    app: 'stall-pos',
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    currency: cfg.currency,
+    products: products,
+    sales: sales
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url;
+  a.download = 'stall-sales-' + todayKey() + '.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1500);
+  toast('Exported ' + sales.length + ' sale(s)');
+}
+
+function handleImport(data){
+  if(!data || typeof data !== 'object'){ alert('Invalid file.'); return; }
+
+  const incoming = Array.isArray(data) ? data : (data.sales || []);
+  const valid = incoming.filter(s =>
+    s && typeof s === 'object' && Array.isArray(s.items) && typeof s.total === 'number');
+
+  const existingIds = new Set(sales.map(s => s.id));
+  const fresh = valid
+    .map(s => Object.assign({}, s, { id: s.id || uid() }))
+    .filter(s => !existingIds.has(s.id));
+
+  let didSomething = false;
+
+  if(fresh.length){
+    if(confirm('Import ' + fresh.length + ' sale(s)?\n(Duplicates are skipped automatically.)')){
+      sales = sales.concat(fresh);
+      saveJSON(K_SALES, sales);
+      renderStats();
+      didSomething = true;
+    }
+  } else {
+    alert('No new sales found in this file.');
+  }
+
+  if(data.products && Array.isArray(data.products) && data.products.length){
+    if(confirm('Also replace your current menu with the menu from this file?')){
+      products = data.products
+        .filter(p => p && p.name)
+        .map(p => ({
+          id: p.id || uid(),
+          emoji: p.emoji || '🍽️',
+          name: String(p.name),
+          price: r2(p.price)
+        }));
+      saveJSON(K_PROD, products);
+      renderProducts();
+      renderCart();
+      didSomething = true;
+    }
+  }
+
+  if(didSomething) toast('Import complete ✓');
+}
+
+/* =========================================================
+   EVENT WIRING
+   ========================================================= */
+$('btnPay').addEventListener('click', openPay);
+
+$('btnClear').addEventListener('click', () => {
+  if(!cart.length) return;
+  if(!confirm('Clear the current order?')) return;
+  cart = [];
+  renderCart();
+});
+
+$('btnPayCancel').addEventListener('click', () => $('payModal').classList.remove('show'));
+$('btnComplete').addEventListener('click', completeSale);
+
+$('tenderInput').addEventListener('input', e => {
+  const v = parseFloat(e.target.value);
+  pay.tendered = isFinite(v) ? v : 0;
+  Array.prototype.forEach.call($('tenderGrid').children, b => b.classList.remove('sel'));
+  updateChange();
+});
+
+$('btnHistory').addEventListener('click', openHistory);
+$('btnHistoryClose').addEventListener('click', () => $('historyModal').classList.remove('show'));
+$('btnHistoryExport').addEventListener('click', exportData);
+
+$('btnClearAll').addEventListener('click', () => {
+  if(!sales.length) return;
+  if(!confirm('Delete ALL ' + sales.length + ' sales?\nThis cannot be undone.\n\nTip: export first!')) return;
+  sales = [];
+  saveJSON(K_SALES, sales);
+  renderHistory();
+  renderStats();
+  toast('All sales cleared');
+});
+
+$('btnMenu').addEventListener('click', openMenu);
+$('btnMenuCancel').addEventListener('click', () => $('menuModal').classList.remove('show'));
+$('btnMenuSave').addEventListener('click', saveMenu);
+
+$('btnAddProduct').addEventListener('click', () => {
+  menuDraft.push({ id: uid(), emoji: '🍽️', name: '', price: 0 });
+  renderMenuList();
+  const inputs = $('menuList').querySelectorAll('.m-name');
+  if(inputs.length) inputs[inputs.length - 1].focus();
+});
+
+$('btnExport').addEventListener('click', exportData);
+
+$('btnImport').addEventListener('click', () => $('fileInput').click());
+
+$('fileInput').addEventListener('change', e => {
+  const file = e.target.files && e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try{
+      handleImport(JSON.parse(reader.result));
+    }catch(err){
+      alert('That file is not valid JSON.');
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+});
+
+/* close modal when clicking the dark backdrop */
+['payModal', 'historyModal', 'menuModal'].forEach(id => {
+  $(id).addEventListener('click', e => {
+    if(e.target === $(id)) $(id).classList.remove('show');
+  });
+});
+
+/* Esc closes topmost modal */
+document.addEventListener('keydown', e => {
+  if(e.key === 'Escape'){
+    document.querySelectorAll('.backdrop.show').forEach(b => b.classList.remove('show'));
+  }
+});
+
+/* =========================================================
+   START
+   ========================================================= */
+renderProducts();
+renderCart();
+renderStats();
+</script>
+</body>
+</html>
