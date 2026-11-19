@@ -19,3 +19,17 @@ Self-contained: Everything runs inside a single HTML file.
 
 2026-11-19 00:00:59
 Now i starts planning GUI and back-bone system, 
+I decided I am going to make 2 finalised HTML apps
+1. [Technical/template] : this will be a little complicated, not as 
+much as in excel, but maybe confusing to non technical person.
+2. [Easy-to-use/Product] : this will be a what my friends will use
+i will distill and dumbdown some of the features in the Technical to 
+reduce the fricition, decision fatigue for my friends.
+
+2026-11-19 11:32:03
+So, far I keep experimentig with many features and differentiating 
+them into essential and non-essential features.
+
+2026-11-19 14:16:28
+Most essential features finished by now, t01 will now be Techincal version
+and new t02 be Main features implemented but unpolished version of Product version

@@ -1,0 +1,1208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0f172a">
+<title>Stall POS — Street Snacks</title>
+<style>
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;margin:0}
+  body{
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    background:#eef2f7;color:#0f172a;
+    -webkit-user-select:none;user-select:none;
+    touch-action:manipulation;overscroll-behavior:none;
+  }
+  button{font-family:inherit;cursor:pointer;touch-action:manipulation}
+  input{font-family:inherit}
+  .app{display:flex;flex-direction:column;height:100vh;height:100dvh}
+
+  /* ============ TOP BAR ============ */
+  .topbar{display:flex;align-items:center;gap:10px;padding:8px 12px;background:#0f172a;color:#fff;
+          flex-wrap:wrap;box-shadow:0 2px 10px rgba(15,23,42,.25);z-index:40}
+  .brand{font-weight:800;font-size:18px;letter-spacing:.3px;white-space:nowrap}
+  .stat{background:rgba(255,255,255,.09);border-radius:12px;padding:4px 12px;line-height:1.15}
+  .stat-label{font-size:10px;text-transform:uppercase;letter-spacing:.8px;opacity:.6;font-weight:700}
+  .stat-value{font-size:17px;font-weight:800;white-space:nowrap}
+  .spacer{flex:1}
+  .tbtn{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.1);
+        border:1px solid rgba(255,255,255,.16);color:#fff;border-radius:12px;padding:0 14px;
+        height:46px;font-size:15px;font-weight:700;transition:.1s}
+  .tbtn:active{background:rgba(255,255,255,.28);transform:scale(.97)}
+
+  /* ============ MAIN ============ */
+  .main{flex:1;display:flex;gap:12px;padding:12px;overflow:hidden;min-height:0}
+  .products-wrap{flex:1;overflow-y:auto;min-width:0;padding:2px;-webkit-overflow-scrolling:touch}
+  .product-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
+                gap:12px;align-content:start}
+  .p-btn{background:#fff;border:2px solid #e2e8f0;border-radius:18px;padding:12px 8px;
+         min-height:118px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+         gap:3px;font-size:16px;font-weight:700;color:#0f172a;transition:.08s;overflow:hidden;
+         box-shadow:0 1px 3px rgba(15,23,42,.07)}
+  .p-btn:active{transform:scale(.95);background:#eef2ff;border-color:#a5b4fc}
+  .p-emoji{font-size:26px;line-height:1.15;letter-spacing:-1px;white-space:nowrap}
+  .p-name{text-align:center;line-height:1.18;font-size:14.5px;
+          display:-webkit-box;-webkit-line-clamp:3;line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+  .p-price{font-size:13.5px;color:#64748b;font-weight:800}
+  .p-var{font-size:11px;font-weight:800;color:#4f46e5;background:#eef2ff;
+         border-radius:999px;padding:1px 8px;margin-top:1px}
+
+  /* ============ CART ============ */
+  .cart{width:390px;flex:0 0 390px;background:#fff;border-radius:20px;padding:12px;
+        display:flex;flex-direction:column;min-height:0;box-shadow:0 4px 24px rgba(15,23,42,.08)}
+  .cart-grip{display:none}
+  .cart-top{display:flex;align-items:center;justify-content:space-between;
+            font-weight:800;font-size:16px;color:#334155;padding:2px 4px}
+  .pill{background:#0f172a;color:#fff;border-radius:999px;padding:2px 12px;font-size:14px;font-weight:800}
+  .cart-items{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:8px;
+              margin:10px 0;min-height:0;-webkit-overflow-scrolling:touch}
+  .cart-empty{color:#94a3b8;text-align:center;padding:34px 10px;font-size:17px;font-weight:600}
+  .ci{display:flex;align-items:center;gap:8px;padding:7px 9px;background:#f8fafc;
+      border:1px solid #e2e8f0;border-radius:14px}
+  .ci-name{flex:1;min-width:0;font-weight:800;font-size:16px;display:flex;flex-direction:column}
+  .ci-name span{font-weight:600;font-size:11.5px;color:#94a3b8}
+  .ci-qty{display:flex;align-items:center;gap:3px}
+  .qbtn{width:44px;height:44px;border-radius:12px;border:1px solid #dbe3ec;background:#fff;
+        font-size:22px;font-weight:800;color:#0f172a;line-height:1;display:flex;
+        align-items:center;justify-content:center}
+  .qbtn:active{background:#e2e8f0;transform:scale(.94)}
+  .qnum{min-width:30px;text-align:center;font-size:20px;font-weight:900}
+  .ci-total{width:88px;text-align:right;font-weight:900;font-size:16px}
+  .cart-total-row{display:flex;justify-content:space-between;align-items:baseline;
+                  font-weight:800;color:#334155;font-size:16px;
+                  border-top:2px dashed #dbe3ec;margin-top:8px;padding:10px 4px 8px}
+  .cart-total-row b{font-size:34px;font-weight:900;color:#0f172a;letter-spacing:-.5px}
+  .cart-actions{display:flex;gap:10px}
+  .btn-clear{width:86px;height:72px;border-radius:18px;background:#fff;border:2px solid #dbe3ec;
+             font-size:15px;font-weight:800;color:#64748b;flex:0 0 auto}
+  .btn-clear:active{background:#f1f5f9}
+  .btn-pay{flex:1;height:72px;border-radius:18px;border:none;color:#fff;
+           background:linear-gradient(180deg,#22c55e,#16a34a);
+           font-size:clamp(18px,2.2vw,25px);font-weight:900;letter-spacing:.3px;
+           box-shadow:0 6px 0 #15803d;transition:.08s;padding:0 10px}
+  .btn-pay:active{transform:translateY(3px);box-shadow:0 3px 0 #15803d}
+  .btn-pay:disabled{background:#cbd5e1;color:#94a3b8;box-shadow:none;transform:none}
+
+  /* edit-sale banner */
+  .edit-banner{display:flex;align-items:center;justify-content:space-between;gap:8px;
+               background:#fef3c7;border:2px solid #f59e0b;border-radius:12px;
+               padding:8px 10px;margin-bottom:8px;color:#92400e;font-weight:800;font-size:14px}
+  .edit-banner-text{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .edit-banner-cancel{height:36px;padding:0 12px;border-radius:10px;border:none;flex:0 0 auto;
+                      background:#f59e0b;color:#fff;font-weight:800;font-size:13px}
+  .edit-banner-cancel:active{background:#d97706}
+
+  /* ============ MODALS ============ */
+  .backdrop{position:fixed;inset:0;background:rgba(15,23,42,.62);display:none;
+            align-items:center;justify-content:center;padding:14px;z-index:50}
+  .backdrop.show{display:flex}
+  .modal{background:#fff;border-radius:22px;padding:18px;width:100%;max-width:520px;
+         max-height:92dvh;overflow:auto;box-shadow:0 24px 70px rgba(0,0,0,.35);
+         animation:pop .16s ease-out}
+  .modal.wide{max-width:820px}
+  @keyframes pop{from{transform:scale(.94);opacity:.5}to{transform:scale(1);opacity:1}}
+  .modal-title{font-size:19px;font-weight:900;color:#334155;margin-bottom:12px}
+  .pay-total{font-size:46px;font-weight:900;text-align:center;letter-spacing:-1px;margin:2px 0 14px}
+  .pay-label{font-size:13px;font-weight:800;color:#94a3b8;text-transform:uppercase;
+             letter-spacing:.8px;margin-bottom:8px}
+  .tender-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px}
+  .tender-btn{padding:16px 8px;border-radius:14px;border:2px solid #dbe3ec;background:#fff;
+              font-size:17px;font-weight:800;color:#0f172a;transition:.08s}
+  .tender-btn:active{transform:scale(.96)}
+  .tender-btn.sel{border-color:#16a34a;background:#dcfce7;color:#15803d}
+  #tenderInput{margin-top:10px;width:100%;height:60px;border-radius:14px;border:2px solid #dbe3ec;
+               font-size:22px;font-weight:800;padding:0 16px;text-align:center}
+  #tenderInput:focus{outline:none;border-color:#6366f1}
+  .change-box{min-height:32px;margin-top:12px;text-align:center;font-size:23px;
+              font-weight:900;color:#15803d}
+  .change-box.bad{color:#dc2626}
+  .btn-complete{width:100%;height:74px;margin-top:12px;border-radius:18px;border:none;color:#fff;
+                background:linear-gradient(180deg,#22c55e,#16a34a);font-size:22px;font-weight:900;
+                box-shadow:0 6px 0 #15803d;transition:.08s;padding:0 10px}
+  .btn-complete:active{transform:translateY(3px);box-shadow:0 3px 0 #15803d}
+  .btn-complete:disabled{background:#cbd5e1;box-shadow:none;color:#94a3b8;transform:none}
+  .btn-cancel{width:100%;height:56px;margin-top:10px;border-radius:14px;border:none;
+              background:#f1f5f9;color:#475569;font-size:17px;font-weight:800}
+  .btn-cancel:active{background:#e2e8f0}
+
+  /* option chooser */
+  .opt-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .opt-btn{display:flex;flex-direction:column;align-items:center;gap:5px;padding:20px 10px;
+           border-radius:16px;border:2px solid #dbe3ec;background:#fff;font-weight:800;
+           font-size:17px;color:#0f172a;transition:.08s}
+  .opt-btn:active{transform:scale(.97);background:#eef2ff;border-color:#a5b4fc}
+  .ob-price{font-size:14px;color:#64748b;font-weight:800}
+  .big-input{width:100%;height:66px;border-radius:14px;border:2px solid #dbe3ec;
+             font-size:27px;font-weight:900;text-align:center;padding:0 14px}
+  .big-input:focus{outline:none;border-color:#6366f1}
+  .chip-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+  .chip{padding:11px 15px;border-radius:999px;border:2px solid #e2e8f0;background:#fff;
+        font-weight:800;font-size:15px;color:#334155}
+  .chip:active{background:#eef2ff;border-color:#a5b4fc}
+
+  /* ============ SALES LOG ============ */
+  .hsummary{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+  .hs{flex:1;min-width:104px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;
+      padding:10px 12px;display:flex;flex-direction:column}
+  .hs b{font-size:18px;font-weight:900;white-space:nowrap}
+  .hs span{font-size:10.5px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:.6px}
+
+  .h-tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+  .h-chip{padding:9px 15px;border-radius:999px;border:2px solid #e2e8f0;background:#fff;
+          font-weight:800;font-size:14px;color:#475569;transition:.1s}
+  .h-chip:active{transform:scale(.96)}
+  .h-chip.on{background:#0f172a;color:#fff;border-color:#0f172a}
+  .h-search{flex:1;min-width:140px;height:44px;border-radius:999px;border:2px solid #e2e8f0;
+            padding:0 18px;font-size:15px;font-weight:700;-webkit-user-select:text;user-select:text}
+  .h-search:focus{outline:none;border-color:#6366f1}
+
+  .hlist{max-height:50vh;overflow-y:auto;padding-right:4px;-webkit-overflow-scrolling:touch}
+
+  .sl-day-head{display:flex;justify-content:space-between;align-items:baseline;
+               padding:12px 4px 6px;font-size:11.5px;font-weight:900;text-transform:uppercase;
+               letter-spacing:.8px;color:#94a3b8;border-bottom:1px dashed #e2e8f0;margin-bottom:8px}
+  .sl-day-head:first-child{padding-top:2px}
+  .sl-day-head b{color:#334155;font-size:15px;letter-spacing:0;text-transform:none}
+
+  .sl{background:#fff;border:1px solid #e2e8f0;border-radius:14px;margin-bottom:8px;overflow:hidden}
+  .sl-head{display:flex;align-items:center;gap:9px;padding:10px 12px;background:#f8fafc;cursor:pointer}
+  .sl-head:active{background:#eef2f7}
+  .sl-time{font-size:13.5px;font-weight:900;color:#334155;white-space:nowrap}
+  .sl-dot{width:6px;height:6px;border-radius:50%;background:#cbd5e1;flex:0 0 auto}
+  .sl-preview{flex:1;min-width:0;font-size:13px;font-weight:600;color:#64748b;
+              overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .sl-amt{font-size:17px;font-weight:900;white-space:nowrap}
+  .sl-caret{font-size:11px;color:#94a3b8;transition:.15s}
+  .sl.open .sl-caret{transform:rotate(180deg)}
+  .sl.open .sl-head{background:#eef2ff}
+  .sl-body{display:none;padding:10px 12px 12px;border-top:1px dashed #e2e8f0}
+  .sl.open .sl-body{display:block}
+  .sl-line{display:flex;align-items:baseline;gap:10px;padding:5px 0;font-size:15px}
+  .sl-line .q{font-weight:900;color:#4f46e5;min-width:28px;font-size:14px}
+  .sl-line .n{flex:1;min-width:0;font-weight:700}
+  .sl-line .p{font-weight:900;color:#334155;white-space:nowrap}
+  .sl-foot{display:flex;flex-wrap:wrap;gap:14px;margin-top:10px;padding-top:9px;
+           border-top:1px solid #f1f5f9;font-size:12.5px;font-weight:700;color:#94a3b8}
+  .sl-foot b{color:#0f172a}
+  .sl-acts{display:flex;gap:8px;margin-top:11px}
+  .sl-acts button{flex:1;height:46px;border-radius:12px;border:none;font-size:14px;font-weight:800}
+  .act-edit{background:#eef2ff;color:#4f46e5}
+  .act-edit:active{background:#e0e7ff}
+  .act-del{background:#fee2e2;color:#dc2626}
+  .act-del:active{background:#fecaca}
+
+  .row-btns{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+  .row-btns button{flex:1;min-width:110px;height:56px;border-radius:14px;border:none;
+                   font-size:16px;font-weight:800}
+  .btn-primary{background:#0f172a;color:#fff}
+  .btn-primary:active{background:#334155}
+  .btn-sec{background:#f1f5f9;color:#475569}
+  .btn-sec:active{background:#e2e8f0}
+  .btn-danger{background:#fee2e2;color:#dc2626}
+  .btn-danger:active{background:#fecaca}
+
+  .empty{color:#94a3b8;text-align:center;padding:30px;font-size:16px;font-weight:700}
+
+  /* toast */
+  #toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,20px);
+         background:#0f172a;color:#fff;padding:15px 26px;border-radius:16px;font-size:18px;
+         font-weight:800;opacity:0;transition:.2s;pointer-events:none;z-index:100;
+         box-shadow:0 10px 30px rgba(0,0,0,.3);white-space:nowrap}
+  #toast.show{opacity:1;transform:translate(-50%,0)}
+
+  /* =========================================================
+     MOBILE  —  full-screen menu + compact bottom bar
+     ========================================================= */
+  @media (max-width:960px){
+    .brand{display:none}
+    .topbar{gap:6px;padding:6px 8px}
+    .tbtn{padding:0 10px;height:42px;font-size:14px}
+    .tbtn span{display:none}
+    .stat{padding:3px 9px;border-radius:10px}
+    .stat-label{font-size:9px}
+    .stat-value{font-size:14px}
+
+    /* reserve the bottom strip for the collapsed cart bar */
+    .main{
+      flex-direction:column;gap:0;
+      padding:6px 6px calc(104px + env(safe-area-inset-bottom));
+    }
+    .products-wrap{flex:1;min-height:0;overflow:hidden;display:flex;padding:0}
+    .product-grid{
+      flex:1;min-height:0;
+      grid-template-columns:repeat(var(--cols,4),minmax(0,1fr));
+      grid-auto-rows:minmax(0,1fr);
+      gap:6px;align-content:stretch;
+    }
+    .p-btn{min-height:0;height:100%;padding:4px 3px;border-radius:12px;border-width:1.5px;gap:2px}
+    .p-emoji{font-size:clamp(17px,5.4vw,27px);line-height:1.05}
+    .p-name{font-size:clamp(10.5px,2.95vw,14px);line-height:1.12;-webkit-line-clamp:3;line-clamp:3}
+    .p-price{font-size:clamp(10px,2.7vw,13px)}
+    .p-var{font-size:9px;padding:0 5px}
+
+    /* -------- cart becomes a bottom sheet -------- */
+    .cart{
+      position:fixed;left:0;right:0;bottom:0;z-index:30;
+      width:auto;flex:none;max-height:82dvh;
+      border-radius:20px 20px 0 0;
+      padding:0 10px calc(8px + env(safe-area-inset-bottom));
+      box-shadow:0 -8px 30px rgba(15,23,42,.22);
+      display:flex;flex-direction:column;
+    }
+    .cart-grip{
+      display:flex;align-items:center;gap:8px;width:100%;height:32px;
+      background:none;border:none;padding:0 2px;
+      font-size:14px;font-weight:900;color:#475569;
+    }
+    .cart-grip .grip-icon{font-size:15px}
+    .cart-grip .grip-text{flex:1;min-width:0;text-align:left;
+                          overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .cart-grip .grip-total{color:#0f172a;font-size:15px}
+    .cart-grip .grip-caret{font-size:11px;color:#94a3b8;transition:.18s}
+    .cart.expanded .cart-grip .grip-caret{transform:rotate(180deg)}
+    .grip-total.bump{animation:bump .28s ease-out}
+    @keyframes bump{0%{transform:scale(1)}40%{transform:scale(1.2)}100%{transform:scale(1)}}
+
+    .cart-top{display:none}
+    .cart-items{display:none}
+    .cart.expanded .cart-items{display:flex;margin:2px 0 6px;
+                               max-height:38dvh;overflow-y:auto;padding-right:2px}
+    .cart-total-row{display:none;border-top:2px dashed #dbe3ec;
+                    padding:8px 4px 6px;margin-top:0}
+    .cart.expanded .cart-total-row{display:flex}
+    .cart-total-row b{font-size:26px}
+
+    .cart-actions{gap:8px;padding-top:6px}
+    .btn-clear{width:66px;height:54px;border-radius:14px;font-size:13.5px}
+    .btn-pay{height:54px;border-radius:14px;font-size:19px;box-shadow:0 4px 0 #15803d}
+    .btn-pay:active{transform:translateY(2px);box-shadow:0 2px 0 #15803d}
+
+    .edit-banner{font-size:12.5px;padding:6px 8px;margin:8px 0 0}
+    .edit-banner-cancel{height:32px;font-size:12px}
+
+    .ci{padding:6px 8px}
+    .ci-name{font-size:15px}
+    .qbtn{width:42px;height:42px}
+    .qnum{font-size:19px}
+    .ci-total{width:78px;font-size:15px}
+
+    .pay-total{font-size:40px}
+    .hlist{max-height:42vh}
+    .hs b{font-size:16px}
+  }
+
+  /* very short screens (landscape phones) — let the grid scroll a bit */
+  @media (max-width:960px) and (max-height:520px){
+    .main{padding-bottom:calc(86px + env(safe-area-inset-bottom))}
+    .products-wrap{overflow-y:auto}
+    .product-grid{grid-auto-rows:minmax(74px,1fr);align-content:start}
+    .cart-grip{height:26px}
+    .btn-clear,.btn-pay{height:46px}
+  }
+
+  @media (max-width:480px){
+    .modal{padding:14px;border-radius:18px}
+    .opt-grid{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ================= TOP BAR ================= -->
+  <header class="topbar">
+    <div class="brand">🏮 Stall POS</div>
+    <div class="stat">
+      <div class="stat-label" id="statDateLabel">Today</div>
+      <div class="stat-value" id="statToday">—</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Orders</div>
+      <div class="stat-value" id="statCount">0</div>
+    </div>
+    <div class="spacer"></div>
+    <button class="tbtn" id="btnHistory" title="Sales log">📋<span>Sales log</span></button>
+    <button class="tbtn" id="btnExport" title="Export sales to JSON">💾<span>Export</span></button>
+    <button class="tbtn" id="btnImport" title="Import sales from JSON">📂<span>Import</span></button>
+    <input type="file" id="fileInput" accept="application/json,.json" hidden>
+  </header>
+
+  <!-- ================= MAIN ================= -->
+  <main class="main">
+    <section class="products-wrap">
+      <div class="product-grid" id="productGrid"></div>
+    </section>
+
+    <aside class="cart" id="cartPanel">
+      <div class="edit-banner" id="editBanner" style="display:none"></div>
+
+      <button class="cart-grip" id="cartGrip" type="button">
+        <span class="grip-icon">🧾</span>
+        <span class="grip-text" id="gripText">No items yet</span>
+        <span class="grip-total" id="gripTotal">0</span>
+        <span class="grip-caret">▲</span>
+      </button>
+
+      <div class="cart-top">
+        <span>🧾 Current order</span>
+        <span class="pill" id="cartCount">0</span>
+      </div>
+
+      <div class="cart-items" id="cartItems"></div>
+
+      <div class="cart-total-row"><span>Total</span><b id="totalText">0</b></div>
+
+      <div class="cart-actions">
+        <button class="btn-clear" id="btnClear">Clear</button>
+        <button class="btn-pay" id="btnPay" disabled>PAY</button>
+      </div>
+    </aside>
+  </main>
+</div>
+
+<!-- ================= ITEM OPTIONS MODAL ================= -->
+<div class="backdrop" id="optModal">
+  <div class="modal">
+    <div class="modal-title" id="optTitle"></div>
+    <div id="optBody"></div>
+    <button class="btn-cancel" id="optCancel">Cancel</button>
+  </div>
+</div>
+
+<!-- ================= PAY MODAL ================= -->
+<div class="backdrop" id="payModal">
+  <div class="modal">
+    <div class="modal-title" id="payTitle">💵 Payment</div>
+    <div class="pay-total" id="payTotal">0</div>
+    <div class="pay-label">Cash received</div>
+    <div class="tender-grid" id="tenderGrid"></div>
+    <input type="number" id="tenderInput" inputmode="decimal" placeholder="Other amount…">
+    <div class="change-box" id="changeBox"></div>
+    <button class="btn-complete" id="btnComplete">COMPLETE</button>
+    <button class="btn-cancel" id="btnPayCancel">Cancel</button>
+  </div>
+</div>
+
+<!-- ================= SALES LOG MODAL ================= -->
+<div class="backdrop" id="historyModal">
+  <div class="modal wide">
+    <div class="modal-title">📋 Sales log</div>
+
+    <div class="hsummary" id="historySummary"></div>
+
+    <div class="h-tools">
+      <button class="h-chip on" data-f="today">Today</button>
+      <button class="h-chip" data-f="yest">Yesterday</button>
+      <button class="h-chip" data-f="week">7 days</button>
+      <button class="h-chip" data-f="all">All</button>
+      <input class="h-search" id="hSearch" placeholder="Search item or amount…">
+    </div>
+
+    <div class="hlist" id="historyList"></div>
+
+    <div class="row-btns">
+      <button class="btn-sec" id="btnHistoryExport">💾 Export</button>
+      <button class="btn-danger" id="btnClearAll">🗑 Clear all</button>
+      <button class="btn-primary" id="btnHistoryClose">Close</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* =========================================================
+   Stall POS — single-file point of sale
+   Fixed menu · mobile-first layout · enhanced sales log
+   ========================================================= */
+
+/* ---------- storage ---------- */
+const K_SALES = 'stallpos.sales.v1';
+
+function loadJSON(key, def){
+  try{
+    const raw = localStorage.getItem(key);
+    if(raw === null) return def;
+    const v = JSON.parse(raw);
+    return (v === null || v === undefined) ? def : v;
+  }catch(e){ return def; }
+}
+function saveJSON(key, val){
+  try{ localStorage.setItem(key, JSON.stringify(val)); }
+  catch(e){ alert('Could not save data.\n' + e.message); }
+}
+
+/* ---------- helpers ---------- */
+const $    = id => document.getElementById(id);
+const esc  = s => String(s === undefined || s === null ? '' : s)
+                   .replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid  = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+const r2   = n => Math.round((Number(n) || 0) * 100) / 100;
+const pad  = n => String(n).padStart(2, '0');
+const dayKey = d => { const x = new Date(d);
+                      return x.getFullYear() + '-' + pad(x.getMonth() + 1) + '-' + pad(x.getDate()); };
+const todayKey = () => dayKey(new Date());
+
+/* ---------- 12-hour time & friendly date labels ---------- */
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+function fmtTime12(d){
+  let h = d.getHours();
+  const m = pad(d.getMinutes());
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  h = h % 12; if(h === 0) h = 12;
+  return h + ':' + m + ' ' + ampm;
+}
+function fmtDateOnly(d){
+  const dd = new Date(d);
+  const now = new Date();
+  const y = dd.getFullYear() === now.getFullYear() ? '' : ' ' + dd.getFullYear();
+  return dd.getDate() + ' ' + MONTHS[dd.getMonth()] + y;
+}
+function fmtDayLabel(d){
+  const now  = new Date();
+  const yest = new Date(now); yest.setDate(now.getDate() - 1);
+  const k = dayKey(d);
+  if(k === dayKey(now))  return 'Today';
+  if(k === dayKey(yest)) return 'Yesterday';
+  return fmtDateOnly(d);
+}
+function fmtWhen(d){
+  return fmtDayLabel(d) + ' · ' + fmtTime12(d);
+}
+
+/* =========================================================
+   FIXED MENU  (edit the numbers here if prices ever change)
+   ========================================================= */
+const CURRENCY = 'Ks';
+
+const MENU = [
+  { id:'m01', emoji:'🍚🍛🍳', name:'Spicy Omelette',
+    variants:[{label:'Regular', price:10000}, {label:'Large', price:15000}] },
+
+  { id:'m02', emoji:'🌽🧀',   name:'Corn Cheese',              price:6000 },
+  { id:'m03', emoji:'🍙🥬',   name:'Seaweed Rice Roll',        price:4000 },
+  { id:'m04', emoji:'🌶️🍙🥬', name:'Spicy Seaweed Rice Roll',  price:5000 },
+  { id:'m05', emoji:'🥪',     name:'Fried Sandwich',           price:5000 },
+  { id:'m06', emoji:'🍟🥔',   name:'Fried Potato (Fries)',     price:5000 },
+  { id:'m07', emoji:'🌶️🍠🥔', name:'Malar Fried Potato',       price:5500 },
+
+  /* both styles cost the same → single fixed-price item */
+  { id:'m08', emoji:'🍝',     name:'Spicy Noodles',            price:4000 },
+
+  { id:'m09', emoji:'🍹',     name:'Juice',                    price:3500 },
+  { id:'m10', emoji:'🍹🥤',   name:'Juice + Soda',             price:4000 },
+  { id:'m11', emoji:'🍹🪼',   name:'Juice + Jelly',            price:4000 },
+
+  { id:'m12', emoji:'🐟🍥',   name:'Fish Cake (1 pc)',         price:1500 },
+  { id:'m13', emoji:'💧🚰',   name:'Chilled Water Bottle',     price:1500 },
+  { id:'m14', emoji:'☕❄️',   name:'Ice Coffee',               price:3000 },
+  { id:'m15', emoji:'☕♨️',   name:'Hot Coffee',               price:2000 },
+
+  /* price entered at the counter each time */
+  { id:'m16', emoji:'🍥🍢🍤', name:'အကင်စုံ (Sea Foods)',      open:true }
+];
+
+/* ---------- state ---------- */
+let sales = loadJSON(K_SALES, []) || [];
+let cart  = [];               // { key, name, price, qty }
+let editingSaleId = null;
+let pay   = { total: 0, tendered: 0, done: false };
+
+/* sales-log view state */
+let hFilter   = 'today';
+let hSearch   = '';
+const openSales = new Set();
+
+/* ---------- money ---------- */
+function money(n){
+  n = r2(n);
+  const s = Number.isInteger(n) ? n.toLocaleString('en-US') : n.toFixed(2);
+  return (CURRENCY ? CURRENCY + ' ' : '') + s;
+}
+
+/* ---------- toast ---------- */
+let toastTimer;
+function toast(msg){
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 1800);
+}
+
+/* ---------- mobile helpers ---------- */
+const cartPanel = $('cartPanel');
+const mqMobile  = window.matchMedia('(max-width: 960px)');
+const isMobile  = () => mqMobile.matches;
+
+function bumpGrip(){
+  const g = $('gripTotal');
+  g.classList.remove('bump');
+  void g.offsetWidth;
+  g.classList.add('bump');
+}
+
+/* =========================================================
+   PRODUCT GRID
+   ========================================================= */
+function priceLabel(p){
+  if(p.open) return 'Set price';
+  if(p.variants){
+    const ps = p.variants.map(v => v.price);
+    const mn = Math.min.apply(null, ps), mx = Math.max.apply(null, ps);
+    return mn === mx ? money(mn) : money(mn) + ' – ' + money(mx);
+  }
+  return money(p.price);
+}
+
+function renderProducts(){
+  const g = $('productGrid');
+
+  /* fit every item on one screen: square-ish grid */
+  const cols = Math.max(2, Math.min(5, Math.ceil(Math.sqrt(MENU.length))));
+  g.style.setProperty('--cols', cols);
+
+  g.innerHTML = '';
+  MENU.forEach(p => {
+    const b = document.createElement('button');
+    b.className = 'p-btn';
+    b.innerHTML =
+      '<span class="p-emoji">' + esc(p.emoji || '🍽️') + '</span>' +
+      '<span class="p-name">'  + esc(p.name) + '</span>' +
+      '<span class="p-price">' + priceLabel(p) + '</span>' +
+      (p.variants ? '<span class="p-var">' + p.variants.length + ' options</span>' : '') +
+      (p.open ? '<span class="p-var">ask counter</span>' : '');
+    b.addEventListener('click', () => {
+      if(p.variants || p.open) openOptions(p);
+      else addToCart(p, '', p.price);
+    });
+    g.appendChild(b);
+  });
+}
+
+/* =========================================================
+   ITEM OPTIONS (variants / manual price)
+   ========================================================= */
+function openOptions(p){
+  $('optTitle').textContent = (p.emoji ? p.emoji + '  ' : '') + p.name;
+  const body = $('optBody');
+  body.innerHTML = '';
+
+  if(p.variants && p.variants.length){
+    const grid = document.createElement('div');
+    grid.className = 'opt-grid';
+    p.variants.forEach(v => {
+      const b = document.createElement('button');
+      b.className = 'opt-btn';
+      b.innerHTML = '<span>' + esc(v.label) + '</span>' +
+                    '<span class="ob-price">' + money(v.price) + '</span>';
+      b.addEventListener('click', () => {
+        addToCart(p, v.label, v.price);
+        closeOptions();
+      });
+      grid.appendChild(b);
+    });
+    body.appendChild(grid);
+  } else {
+    body.innerHTML =
+      '<div class="pay-label">Enter the price</div>' +
+      '<input id="openPrice" class="big-input" type="number" inputmode="decimal" placeholder="0">' +
+      '<div class="chip-row" id="openChips"></div>' +
+      '<button class="btn-complete" id="openAdd" style="margin-top:14px">ADD TO ORDER</button>';
+
+    const chips = [500, 1000, 1500, 2000, 3000, 5000, 10000];
+    const row   = body.querySelector('#openChips');
+    const input = body.querySelector('#openPrice');
+
+    chips.forEach(v => {
+      const c = document.createElement('button');
+      c.className = 'chip';
+      c.textContent = money(v);
+      c.addEventListener('click', () => { input.value = v; input.focus(); });
+      row.appendChild(c);
+    });
+
+    const add = () => {
+      const v = r2(parseFloat(input.value));
+      if(!isFinite(v) || v <= 0){ toast('Enter a price first'); input.focus(); return; }
+      addToCart(p, '', v);
+      closeOptions();
+    };
+    body.querySelector('#openAdd').addEventListener('click', add);
+    input.addEventListener('keydown', e => { if(e.key === 'Enter') add(); });
+    setTimeout(() => input.focus(), 60);
+  }
+
+  $('optModal').classList.add('show');
+}
+function closeOptions(){
+  $('optModal').classList.remove('show');
+}
+
+/* =========================================================
+   CART
+   ========================================================= */
+function addToCart(p, label, price){
+  const fullName = p.name + (label ? ' · ' + label : '');
+  const key = p.id + '|' + (label || '') + '|' + price;
+  let found = cart.find(c => c.key === key);
+  /* merge with a recalled line that has the same name & price */
+  if(!found) found = cart.find(c => c.name === fullName && c.price === price);
+  if(found) found.qty++;
+  else cart.push({ key, name: fullName, price: price, qty: 1 });
+  renderCart();
+  bumpGrip();
+}
+
+function cartTotal(){ return r2(cart.reduce((s, i) => s + i.price * i.qty, 0)); }
+function cartQty(){   return cart.reduce((s, i) => s + i.qty, 0); }
+
+function renderCart(){
+  /* ---------- edit banner ---------- */
+  const banner = $('editBanner');
+  if(editingSaleId){
+    const orig = sales.find(s => s.id === editingSaleId);
+    const whenStr = orig ? fmtWhen(new Date(orig.ts)) : '?';
+    banner.style.display = 'flex';
+    banner.innerHTML =
+      '<span class="edit-banner-text">✏️ Editing order from ' + whenStr + '</span>' +
+      '<button class="edit-banner-cancel" type="button">Cancel</button>';
+    banner.querySelector('.edit-banner-cancel').addEventListener('click', cancelEdit);
+  } else {
+    banner.style.display = 'none';
+    banner.innerHTML = '';
+  }
+
+  /* ---------- items ---------- */
+  const wrap = $('cartItems');
+  wrap.innerHTML = '';
+
+  if(!cart.length){
+    wrap.innerHTML = '<div class="cart-empty">👈 Tap an item to start</div>';
+  } else {
+    cart.forEach((it, i) => {
+      const row = document.createElement('div');
+      row.className = 'ci';
+      row.innerHTML =
+        '<div class="ci-name">' + esc(it.name) +
+          '<span>' + money(it.price) + ' each</span></div>' +
+        '<div class="ci-qty">' +
+          '<button class="qbtn" data-a="minus">−</button>' +
+          '<span class="qnum">' + it.qty + '</span>' +
+          '<button class="qbtn" data-a="plus">+</button>' +
+        '</div>' +
+        '<div class="ci-total">' + money(it.price * it.qty) + '</div>';
+
+      row.querySelector('[data-a="minus"]').addEventListener('click', () => {
+        it.qty--;
+        if(it.qty <= 0) cart.splice(i, 1);
+        renderCart();
+      });
+      row.querySelector('[data-a="plus"]').addEventListener('click', () => {
+        it.qty++;
+        renderCart();
+      });
+      wrap.appendChild(row);
+    });
+  }
+
+  /* ---------- totals & labels ---------- */
+  const total = cartTotal();
+  const qty   = cartQty();
+
+  $('totalText').textContent = money(total);
+  $('cartCount').textContent = qty;
+  $('gripTotal').textContent = money(total);
+  $('gripText').textContent  = cart.length
+    ? qty + (qty === 1 ? ' item' : ' items')
+    : (editingSaleId ? 'Editing order' : 'No items yet');
+
+  const payBtn = $('btnPay');
+  payBtn.disabled = cart.length === 0;
+  payBtn.textContent = editingSaleId
+    ? (cart.length ? 'UPDATE  ' + money(total) : 'UPDATE')
+    : (cart.length ? 'PAY  ' + money(total) : 'PAY');
+
+  /* keep the sheet tidy */
+  if(!cart.length && !editingSaleId) cartPanel.classList.remove('expanded');
+}
+
+/* ---------- mobile sheet toggle ---------- */
+$('cartGrip').addEventListener('click', () => {
+  if(!cart.length && !editingSaleId) return;
+  cartPanel.classList.toggle('expanded');
+});
+
+/* =========================================================
+   STATS
+   ========================================================= */
+function renderStats(){
+  const now = new Date();
+  const t   = dayKey(now);
+  let sum = 0, count = 0;
+  sales.forEach(s => {
+    if(dayKey(s.ts) === t){ sum += (s.total || 0); count++; }
+  });
+  $('statToday').textContent     = money(sum);
+  $('statCount').textContent     = count;
+  $('statDateLabel').textContent = fmtDateOnly(now);
+}
+
+/* =========================================================
+   PAY FLOW
+   ========================================================= */
+function niceTenders(total){
+  const NOTES = [1000, 5000, 10000];
+  const out = [];
+
+  for(const d of NOTES){
+    const v = (Math.floor(total / d) + 1) * d;
+    if(out.indexOf(v) === -1) out.push(v);
+  }
+  if(out.length < 3){
+    const sums = [];
+    for(const a of NOTES) for(const b of NOTES) sums.push(a + b);
+    for(const c of NOTES) sums.push(c * 3);
+    sums.sort((a, b) => a - b);
+    for(const v of sums){
+      if(v > total && out.indexOf(v) === -1){
+        out.push(v);
+        if(out.length >= 3) break;
+      }
+    }
+  }
+  return out.sort((a, b) => a - b).slice(0, 3);
+}
+
+function openPay(){
+  if(!cart.length) return;
+  pay.total = cartTotal();
+
+  if(editingSaleId){
+    const orig = sales.find(s => s.id === editingSaleId);
+    pay.tendered = (orig && orig.tendered >= pay.total) ? orig.tendered : pay.total;
+    $('payTitle').textContent = '✏️ Update order';
+  } else {
+    pay.tendered = pay.total;
+    $('payTitle').textContent = '💵 Payment';
+  }
+
+  pay.done = false;
+  $('payTotal').textContent = money(pay.total);
+  $('tenderInput').value = '';
+  renderTenders();
+  $('payModal').classList.add('show');
+}
+
+function renderTenders(){
+  const grid = $('tenderGrid');
+  grid.innerHTML = '';
+  const opts = [{ label: 'Exact', value: pay.total }];
+  niceTenders(pay.total).forEach(v => opts.push({ label: money(v), value: v }));
+
+  opts.forEach(o => {
+    const b = document.createElement('button');
+    b.className = 'tender-btn' + (Math.abs(o.value - pay.tendered) < 0.005 ? ' sel' : '');
+    b.textContent = o.label;
+    b.addEventListener('click', () => {
+      pay.tendered = o.value;
+      $('tenderInput').value = '';
+      renderTenders();
+    });
+    grid.appendChild(b);
+  });
+  updateChange();
+}
+
+function updateChange(){
+  const diff = r2(pay.tendered - pay.total);
+  const box  = $('changeBox');
+  const btn  = $('btnComplete');
+
+  if(diff < -0.005){
+    box.textContent = 'Short by ' + money(Math.abs(diff));
+    box.className = 'change-box bad';
+    btn.disabled = true;
+  } else if(diff > 0.005){
+    box.textContent = 'Change: ' + money(diff);
+    box.className = 'change-box';
+    btn.disabled = false;
+  } else {
+    box.textContent = '';
+    box.className = 'change-box';
+    btn.disabled = false;
+  }
+  btn.textContent = (editingSaleId ? '✅ UPDATE — ' : '✅ COMPLETE — ') + money(pay.total);
+}
+
+function completeSale(){
+  if(pay.done) return;
+  if(pay.tendered < pay.total - 0.005) return;
+  if(!cart.length) return;
+
+  pay.done = true;
+
+  const items    = cart.map(c => ({ name: c.name, price: c.price, qty: c.qty }));
+  const total    = r2(pay.total);
+  const tendered = r2(pay.tendered);
+  const change   = r2(pay.tendered - pay.total);
+
+  let message;
+
+  if(editingSaleId){
+    const idx = sales.findIndex(s => s.id === editingSaleId);
+    if(idx === -1){
+      sales.push({ id: uid(), ts: new Date().toISOString(), items, total, tendered, change });
+      message = 'Original not found — saved as new ✓';
+    } else {
+      sales[idx] = Object.assign({}, sales[idx], {
+        items, total, tendered, change,
+        editedAt: new Date().toISOString()
+      });
+      message = 'Order updated ✓  ' + money(total);
+    }
+    editingSaleId = null;
+  } else {
+    sales.push({ id: uid(), ts: new Date().toISOString(), items, total, tendered, change });
+    message = 'Saved ✓  ' + money(total);
+  }
+
+  saveJSON(K_SALES, sales);
+  cart = [];
+  $('payModal').classList.remove('show');
+  cartPanel.classList.remove('expanded');
+  renderCart();
+  renderStats();
+  toast(message);
+}
+
+/* =========================================================
+   RECALL / EDIT
+   ========================================================= */
+function recallSale(sale){
+  if(editingSaleId && editingSaleId !== sale.id){
+    if(!confirm('Discard the current edit and load this order instead?')) return;
+  }
+  cart = (sale.items || []).map((it, idx) => ({
+    key:   'rec-' + sale.id + '-' + idx,
+    name:  it.name,
+    price: it.price,
+    qty:   it.qty
+  }));
+  editingSaleId = sale.id;
+  $('historyModal').classList.remove('show');
+  renderCart();
+  if(isMobile()) cartPanel.classList.add('expanded');
+  toast('Editing order — tap UPDATE to save');
+}
+
+function cancelEdit(){
+  if(!confirm('Discard your changes to this order?')) return;
+  editingSaleId = null;
+  cart = [];
+  cartPanel.classList.remove('expanded');
+  renderCart();
+}
+
+function deleteSale(sale){
+  const items = (sale.items || []).map(i => i.qty + '× ' + i.name).join(', ');
+  if(!confirm('Delete this order?\n' + money(sale.total) + '\n' + items)) return;
+  sales = sales.filter(x => x.id !== sale.id);
+  if(editingSaleId === sale.id){
+    editingSaleId = null;
+    cart = [];
+    cartPanel.classList.remove('expanded');
+    renderCart();
+  }
+  openSales.delete(sale.id);
+  saveJSON(K_SALES, sales);
+  renderHistory();
+  renderStats();
+  toast('Order deleted');
+}
+
+/* =========================================================
+   SALES LOG
+   ========================================================= */
+function openHistory(){
+  renderHistory();
+  $('historyModal').classList.add('show');
+}
+
+function hsCard(value, label){
+  return '<div class="hs"><b>' + value + '</b><span>' + label + '</span></div>';
+}
+
+function itemQty(s){
+  return (s.items || []).reduce((a, i) => a + (i.qty || 0), 0);
+}
+
+function renderHistory(){
+  const tKey    = todayKey();
+  const yKey    = dayKey(new Date(Date.now() - 864e5));
+  const weekAgo = Date.now() - 7 * 864e5;
+
+  /* ---- filter ---- */
+  let arr = sales.slice();
+  if(hFilter === 'today')      arr = arr.filter(s => dayKey(s.ts) === tKey);
+  else if(hFilter === 'yest')  arr = arr.filter(s => dayKey(s.ts) === yKey);
+  else if(hFilter === 'week')  arr = arr.filter(s => new Date(s.ts).getTime() >= weekAgo);
+
+  /* ---- search ---- */
+  const q = hSearch.trim().toLowerCase();
+  if(q){
+    arr = arr.filter(s => {
+      if(String(s.total).indexOf(q) !== -1) return true;
+      if(money(s.total).toLowerCase().indexOf(q) !== -1) return true;
+      return (s.items || []).some(i => String(i.name).toLowerCase().indexOf(q) !== -1);
+    });
+  }
+
+  arr.sort((a, b) => new Date(b.ts) - new Date(a.ts));
+
+  /* ---- summary ---- */
+  const total = arr.reduce((s, x) => s + (x.total || 0), 0);
+  const items = arr.reduce((s, x) => s + itemQty(x), 0);
+  const avg   = arr.length ? total / arr.length : 0;
+
+  $('historySummary').innerHTML =
+    hsCard(arr.length, 'orders') +
+    hsCard(money(total), 'total') +
+    hsCard(money(avg), 'avg order') +
+    hsCard(items, 'items sold');
+
+  /* ---- list ---- */
+  const list = $('historyList');
+  list.innerHTML = '';
+
+  if(!arr.length){
+    list.innerHTML = '<div class="empty">No orders match this view.</div>';
+    return;
+  }
+
+  /* group by day */
+  const groups = [];
+  const byDay  = {};
+  arr.forEach(s => {
+    const k = dayKey(s.ts);
+    if(!byDay[k]){ byDay[k] = { key: k, ts: s.ts, sales: [] }; groups.push(byDay[k]); }
+    byDay[k].sales.push(s);
+  });
+
+  groups.forEach(g => {
+    const gTotal = g.sales.reduce((s, x) => s + (x.total || 0), 0);
+    const gQty   = g.sales.reduce((s, x) => s + itemQty(x), 0);
+
+    const head = document.createElement('div');
+    head.className = 'sl-day-head';
+    head.innerHTML =
+      '<span>' + fmtDayLabel(g.ts) + ' · ' + g.sales.length + ' order' +
+        (g.sales.length === 1 ? '' : 's') + ' · ' + gQty + ' items</span>' +
+      '<b>' + money(gTotal) + '</b>';
+    list.appendChild(head);
+
+    g.sales.forEach(s => list.appendChild(saleRow(s)));
+  });
+}
+
+function saleRow(s){
+  const d       = new Date(s.ts);
+  const isOpen  = openSales.has(s.id);
+  const items   = s.items || [];
+  const preview = items.map(i => i.qty + '× ' + i.name).join('  ·  ');
+
+  const el = document.createElement('div');
+  el.className = 'sl' + (isOpen ? ' open' : '');
+
+  el.innerHTML =
+    '<div class="sl-head">' +
+      '<span class="sl-time">' + fmtTime12(d) + '</span>' +
+      '<span class="sl-dot"></span>' +
+      '<span class="sl-preview">' + esc(preview) + '</span>' +
+      '<span class="sl-amt">' + money(s.total) + '</span>' +
+      '<span class="sl-caret">▼</span>' +
+    '</div>' +
+    '<div class="sl-body">' +
+      items.map(i =>
+        '<div class="sl-line">' +
+          '<span class="q">' + i.qty + '×</span>' +
+          '<span class="n">' + esc(i.name) + '</span>' +
+          '<span class="p">' + money(i.price * i.qty) + '</span>' +
+        '</div>'
+      ).join('') +
+      '<div class="sl-foot">' +
+        '<span>Paid <b>' + money(s.tendered === undefined ? s.total : s.tendered) + '</b></span>' +
+        '<span>Change <b>' + money(s.change || 0) + '</b></span>' +
+        (s.editedAt ? '<span>Edited <b>' + fmtWhen(new Date(s.editedAt)) + '</b></span>' : '') +
+        '<span>#<b>' + esc(String(s.id).slice(-6)) + '</b></span>' +
+      '</div>' +
+      '<div class="sl-acts">' +
+        '<button class="act-edit">✏️ Edit order</button>' +
+        '<button class="act-del">🗑 Delete</button>' +
+      '</div>' +
+    '</div>';
+
+  el.querySelector('.sl-head').addEventListener('click', () => {
+    if(openSales.has(s.id)) openSales.delete(s.id);
+    else openSales.add(s.id);
+    el.classList.toggle('open');
+  });
+  el.querySelector('.act-edit').addEventListener('click', () => recallSale(s));
+  el.querySelector('.act-del').addEventListener('click',  () => deleteSale(s));
+
+  return el;
+}
+
+/* =========================================================
+   EXPORT / IMPORT
+   ========================================================= */
+function exportData(){
+  const data = {
+    app: 'stall-pos',
+    version: 2,
+    exportedAt: new Date().toISOString(),
+    currency: CURRENCY,
+    sales: sales
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url;
+  a.download = 'stall-sales-' + todayKey() + '.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1500);
+  toast('Exported ' + sales.length + ' order(s)');
+}
+
+function handleImport(data){
+  if(!data || typeof data !== 'object'){ alert('Invalid file.'); return; }
+
+  const incoming = Array.isArray(data) ? data : (data.sales || []);
+  const valid = incoming.filter(s =>
+    s && typeof s === 'object' && Array.isArray(s.items) && typeof s.total === 'number');
+
+  const existingIds = new Set(sales.map(s => s.id));
+  const fresh = valid
+    .map(s => Object.assign({}, s, { id: s.id || uid() }))
+    .filter(s => !existingIds.has(s.id));
+
+  if(!fresh.length){ alert('No new orders found in this file.'); return; }
+
+  if(!confirm('Import ' + fresh.length + ' order(s)?\n(Duplicates are skipped automatically.)')) return;
+
+  sales = sales.concat(fresh);
+  saveJSON(K_SALES, sales);
+  renderStats();
+  renderHistory();
+  toast('Import complete ✓');
+}
+
+/* =========================================================
+   EVENT WIRING
+   ========================================================= */
+$('btnPay').addEventListener('click', openPay);
+
+$('btnClear').addEventListener('click', () => {
+  if(editingSaleId){ cancelEdit(); return; }
+  if(!cart.length) return;
+  if(!confirm('Clear the current order?')) return;
+  cart = [];
+  cartPanel.classList.remove('expanded');
+  renderCart();
+});
+
+$('btnPayCancel').addEventListener('click', () => $('payModal').classList.remove('show'));
+$('btnComplete').addEventListener('click', completeSale);
+
+$('tenderInput').addEventListener('input', e => {
+  const v = parseFloat(e.target.value);
+  pay.tendered = isFinite(v) ? v : 0;
+  Array.prototype.forEach.call($('tenderGrid').children, b => b.classList.remove('sel'));
+  updateChange();
+});
+
+/* options modal */
+$('optCancel').addEventListener('click', closeOptions);
+
+/* sales log */
+$('btnHistory').addEventListener('click', openHistory);
+$('btnHistoryClose').addEventListener('click', () => $('historyModal').classList.remove('show'));
+$('btnHistoryExport').addEventListener('click', exportData);
+
+document.querySelectorAll('.h-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('.h-chip').forEach(c => c.classList.remove('on'));
+    chip.classList.add('on');
+    hFilter = chip.dataset.f;
+    renderHistory();
+  });
+});
+
+$('hSearch').addEventListener('input', e => {
+  hSearch = e.target.value;
+  renderHistory();
+});
+
+$('btnClearAll').addEventListener('click', () => {
+  if(!sales.length) return;
+  if(!confirm('Delete ALL ' + sales.length + ' orders?\nThis cannot be undone.\n\nTip: export first!')) return;
+  sales = [];
+  editingSaleId = null;
+  cart = [];
+  openSales.clear();
+  cartPanel.classList.remove('expanded');
+  renderCart();
+  saveJSON(K_SALES, sales);
+  renderHistory();
+  renderStats();
+  toast('All orders cleared');
+});
+
+/* export / import */
+$('btnExport').addEventListener('click', exportData);
+$('btnImport').addEventListener('click', () => $('fileInput').click());
+
+$('fileInput').addEventListener('change', e => {
+  const file = e.target.files && e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try{
+      handleImport(JSON.parse(reader.result));
+    }catch(err){
+      alert('That file is not valid JSON.');
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+});
+
+/* close modal when clicking the dark backdrop */
+['optModal', 'payModal', 'historyModal'].forEach(id => {
+  $(id).addEventListener('click', e => {
+    if(e.target === $(id)) $(id).classList.remove('show');
+  });
+});
+
+/* Esc closes topmost modal */
+document.addEventListener('keydown', e => {
+  if(e.key === 'Escape'){
+    document.querySelectorAll('.backdrop.show').forEach(b => b.classList.remove('show'));
+  }
+});
+
+/* =========================================================
+   START
+   ========================================================= */
+renderProducts();
+renderCart();
+renderStats();
+</script>
+</body>
+</html>

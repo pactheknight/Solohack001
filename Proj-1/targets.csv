@@ -1,11 +1,11 @@
-Phase,Task,Completed time
-0,Begins the solo hackathon,2026-11-18 23:46:44
-1,Choose project & problem,2026-11-19 00:00:41
-2,Planning & design,2026-11-19 00:18:51
-3,Core development,2026-11-19 00:19:02
-4,Main features,
-5,Backend & integration,
-6,Testing & debugging,
-7,UI/UX improvements,
-8,Documentation,
-9,Final demo & submission,
+Phase,Task,Completed time,Note
+0,Begins the solo hackathon,2026-11-18 23:46:44,
+1,Choose project & problem,2026-11-19 00:00:41,
+2,Planning & design,2026-11-19 00:18:51,
+3,Core development,2026-11-19 00:19:02,
+4,Main features,2026-11-19 12:09:23,
+5,Backend & integration,N/A,
+6,Testing & debugging,,
+7,UI/UX improvements,,
+8,Documentation,,
+9,Final demo & submission,,
