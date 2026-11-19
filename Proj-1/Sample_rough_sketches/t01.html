@@ -81,6 +81,15 @@
   .btn-pay:active{transform:translateY(3px);box-shadow:0 3px 0 #15803d}
   .btn-pay:disabled{background:#cbd5e1;color:#94a3b8;box-shadow:none;transform:none}
 
+  /* edit-sale banner */
+  .edit-banner{display:flex;align-items:center;justify-content:space-between;gap:8px;
+               background:#fef3c7;border:2px solid #f59e0b;border-radius:12px;
+               padding:8px 10px;margin-bottom:8px;color:#92400e;font-weight:800;font-size:14px}
+  .edit-banner-text{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .edit-banner-cancel{height:36px;padding:0 12px;border-radius:10px;border:none;flex:0 0 auto;
+                      background:#f59e0b;color:#fff;font-weight:800;font-size:13px}
+  .edit-banner-cancel:active{background:#d97706}
+
   /* ============ MODALS ============ */
   .backdrop{position:fixed;inset:0;background:rgba(15,23,42,.62);display:none;
             align-items:center;justify-content:center;padding:14px;z-index:50}
@@ -132,6 +141,12 @@
   .hdel{width:42px;height:42px;flex:0 0 auto;border-radius:12px;border:1px solid #fecaca;
         background:#fff;color:#dc2626;font-size:16px;font-weight:900}
   .hdel:active{background:#fee2e2}
+  .hedit{width:42px;height:42px;flex:0 0 auto;border-radius:12px;border:1px solid #c7d2fe;
+         background:#fff;color:#4f46e5;font-size:16px;font-weight:900}
+  .hedit:active{background:#e0e7ff}
+  .h-edited{background:#fef3c7;color:#92400e;border-radius:6px;padding:1px 6px;
+            font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.4px;
+            margin-left:6px}
   .row-btns{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
   .row-btns button{flex:1;min-width:110px;height:56px;border-radius:14px;border:none;
                    font-size:16px;font-weight:800}
@@ -190,6 +205,7 @@
     .pay-total{font-size:38px}
     .qbtn{width:42px;height:42px}
     .ci-total{width:78px;font-size:15px}
+    .edit-banner{font-size:13px;padding:6px 8px}
   }
   @media (max-width:480px){
     .mrow{grid-template-columns:52px 1fr 90px 42px}
@@ -205,7 +221,7 @@
   <header class="topbar">
     <div class="brand">🏮 Stall POS</div>
     <div class="stat">
-      <div class="stat-label">Today</div>
+      <div class="stat-label" id="statDateLabel">Today</div>
       <div class="stat-value" id="statToday">—</div>
     </div>
     <div class="stat">
@@ -227,6 +243,7 @@
     </section>
 
     <aside class="cart">
+      <div class="edit-banner" id="editBanner" style="display:none"></div>
       <div class="cart-top">
         <span>🧾 Current order</span>
         <span class="pill" id="cartCount">0</span>
@@ -246,7 +263,7 @@
 <!-- ================= PAY MODAL ================= -->
 <div class="backdrop" id="payModal">
   <div class="modal">
-    <div class="modal-title">💵 Payment</div>
+    <div class="modal-title" id="payTitle">💵 Payment</div>
     <div class="pay-total" id="payTotal">0</div>
     <div class="pay-label">Cash received</div>
     <div class="tender-grid" id="tenderGrid"></div>
@@ -323,6 +340,37 @@ const dayKey = d => { const x = new Date(d);
                       return x.getFullYear() + '-' + pad(x.getMonth() + 1) + '-' + pad(x.getDate()); };
 const todayKey = () => dayKey(new Date());
 
+/* ---------- 12-hour time & friendly date labels ---------- */
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+function fmtTime12(d){
+  let h = d.getHours();
+  const m = pad(d.getMinutes());
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  h = h % 12; if(h === 0) h = 12;
+  return h + ':' + m + ' ' + ampm;
+}
+
+function fmtDateOnly(d){
+  const dd = new Date(d);
+  const now = new Date();
+  const y = dd.getFullYear() === now.getFullYear() ? '' : ' ' + dd.getFullYear();
+  return dd.getDate() + ' ' + MONTHS[dd.getMonth()] + y;
+}
+
+function fmtDayLabel(d){
+  const now  = new Date();
+  const yest = new Date(now); yest.setDate(now.getDate() - 1);
+  const k = dayKey(d);
+  if(k === dayKey(now))  return 'Today';
+  if(k === dayKey(yest)) return 'Yesterday';
+  return fmtDateOnly(d);
+}
+
+function fmtWhen(d){
+  return fmtDayLabel(d) + ' · ' + fmtTime12(d);
+}
+
 /* ---------- default menu ---------- */
 const DEFAULT_PRODUCTS = [
   { id:'p1', emoji:'🍢', name:'Skewer',    price:1000 },
@@ -338,6 +386,7 @@ let products = loadJSON(K_PROD, null) || DEFAULT_PRODUCTS.map(p => ({...p}));
 let sales    = loadJSON(K_SALES, []) || [];
 let cfg      = Object.assign({ currency: 'Ks' }, loadJSON(K_CFG, {}) || {});
 let cart     = [];            // { pid, name, price, qty }
+let editingSaleId = null;     // null = new sale; otherwise the id being recalled
 let menuDraft = [];           // temporary copy while editing the menu
 let pay      = { total: 0, tendered: 0, done: false };
 
@@ -381,7 +430,9 @@ function renderProducts(){
 }
 
 function addToCart(p){
-  const found = cart.find(c => c.pid === p.id);
+  let found = cart.find(c => c.pid === p.id);
+  /* merge by name+price so recalled lines don't duplicate when re-added from the grid */
+  if(!found) found = cart.find(c => c.name === p.name && c.price === p.price);
   if(found) found.qty++;
   else cart.push({ pid: p.id, name: p.name, price: p.price, qty: 1 });
   renderCart();
@@ -394,6 +445,26 @@ function cartTotal(){ return r2(cart.reduce((s, i) => s + i.price * i.qty, 0)); 
 function cartQty(){   return cart.reduce((s, i) => s + i.qty, 0); }
 
 function renderCart(){
+  /* ---------- edit banner ---------- */
+  const banner = $('editBanner');
+  if(editingSaleId){
+    const orig = sales.find(s => s.id === editingSaleId);
+    let whenStr = '?';
+    if(orig){
+      whenStr = fmtWhen(new Date(orig.ts));
+    }
+    banner.style.display = 'flex';
+    banner.innerHTML =
+      '<span class="edit-banner-text">✏️ Editing sale from ' + whenStr + '</span>' +
+      '<button class="edit-banner-cancel" type="button">Cancel</button>';
+    banner.querySelector('.edit-banner-cancel')
+          .addEventListener('click', cancelEdit);
+  } else {
+    banner.style.display = 'none';
+    banner.innerHTML = '';
+  }
+
+  /* ---------- items ---------- */
   const wrap = $('cartItems');
   wrap.innerHTML = '';
 
@@ -426,52 +497,81 @@ function renderCart(){
     });
   }
 
+  /* ---------- totals & action button ---------- */
   const total = cartTotal();
   $('totalText').textContent = money(total);
   $('cartCount').textContent = cartQty();
   const payBtn = $('btnPay');
   payBtn.disabled = cart.length === 0;
-  payBtn.textContent = cart.length ? 'PAY  ' + money(total) : 'PAY';
+  if(editingSaleId){
+    payBtn.textContent = cart.length ? 'UPDATE  ' + money(total) : 'UPDATE';
+  } else {
+    payBtn.textContent = cart.length ? 'PAY  ' + money(total) : 'PAY';
+  }
 }
 
 /* =========================================================
    STATS
    ========================================================= */
 function renderStats(){
-  const t = todayKey();
+  const now = new Date();
+  const t   = dayKey(now);
   let sum = 0, count = 0;
   sales.forEach(s => {
     if(dayKey(s.ts) === t){ sum += (s.total || 0); count++; }
   });
-  $('statToday').textContent = money(sum);
-  $('statCount').textContent = count;
+  $('statToday').textContent     = money(sum);
+  $('statCount').textContent     = count;
+  $('statDateLabel').textContent = fmtDateOnly(now);
 }
 
 /* =========================================================
    PAY FLOW
    ========================================================= */
+/* ---------- nearest-note suggestions (1k / 5k / 10k only) ---------- */
 function niceTenders(total){
-  const steps = [];
-  for(let k = -2; k <= 6; k++){
-    steps.push(r2(1 * Math.pow(10, k)));
-    steps.push(r2(5 * Math.pow(10, k)));
-  }
-  steps.sort((a, b) => a - b);
+  const NOTES = [1000, 5000, 10000];   // edit here if you ever add notes
   const out = [];
-  for(const s of steps){
-    if(s <= 0) continue;
-    const v = r2(Math.ceil(total / s) * s);
-    if(v > total + 1e-9 && out.indexOf(v) === -1) out.push(v);
-    if(out.length >= 3) break;
+
+  // 1) Next multiple of each note, strictly greater than total
+  for(const d of NOTES){
+    const v = (Math.floor(total / d) + 1) * d;
+    if(out.indexOf(v) === -1) out.push(v);
   }
-  return out;
+
+  // 2) If we got fewer than 3, fill in with 2-note / 3-note sums
+  if(out.length < 3){
+    const sums = [];
+    for(const a of NOTES) for(const b of NOTES) sums.push(a + b);
+    for(const c of NOTES) sums.push(c * 3);
+    sums.sort((a, b) => a - b);
+    for(const v of sums){
+      if(v > total && out.indexOf(v) === -1){
+        out.push(v);
+        if(out.length >= 3) break;
+      }
+    }
+  }
+
+  // 3) Smallest first
+  return out.sort((a, b) => a - b).slice(0, 3);
 }
 
 function openPay(){
   if(!cart.length) return;
-  pay.total    = cartTotal();
-  pay.tendered = pay.total;
-  pay.done     = false;
+  pay.total = cartTotal();
+
+  if(editingSaleId){
+    const orig = sales.find(s => s.id === editingSaleId);
+    // keep the original cash received if it still covers the new total
+    pay.tendered = (orig && orig.tendered >= pay.total) ? orig.tendered : pay.total;
+    $('payTitle').textContent = '✏️ Update sale';
+  } else {
+    pay.tendered = pay.total;
+    $('payTitle').textContent = '💵 Payment';
+  }
+
+  pay.done = false;
   $('payTotal').textContent = money(pay.total);
   $('tenderInput').value = '';
   renderTenders();
@@ -516,7 +616,7 @@ function updateChange(){
     box.className = 'change-box';
     btn.disabled = false;
   }
-  btn.textContent = '✅ COMPLETE — ' + money(pay.total);
+  btn.textContent = (editingSaleId ? '✅ UPDATE — ' : '✅ COMPLETE — ') + money(pay.total);
 }
 
 function completeSale(){
@@ -526,23 +626,64 @@ function completeSale(){
 
   pay.done = true;
 
-  const sale = {
-    id: uid(),
-    ts: new Date().toISOString(),
-    items: cart.map(c => ({ name: c.name, price: c.price, qty: c.qty })),
-    total:    r2(pay.total),
-    tendered: r2(pay.tendered),
-    change:   r2(pay.tendered - pay.total)
-  };
+  const items    = cart.map(c => ({ name: c.name, price: c.price, qty: c.qty }));
+  const total    = r2(pay.total);
+  const tendered = r2(pay.tendered);
+  const change   = r2(pay.tendered - pay.total);
 
-  sales.push(sale);
+  let message;
+
+  if(editingSaleId){
+    const idx = sales.findIndex(s => s.id === editingSaleId);
+    if(idx === -1){
+      // original vanished → save as a new sale instead of crashing
+      sales.push({ id: uid(), ts: new Date().toISOString(), items, total, tendered, change });
+      message = 'Original not found — saved as new ✓';
+    } else {
+      sales[idx] = Object.assign({}, sales[idx], {
+        items, total, tendered, change,
+        editedAt: new Date().toISOString()   // ts intentionally preserved
+      });
+      message = 'Sale updated ✓  ' + money(total);
+    }
+    editingSaleId = null;
+  } else {
+    sales.push({ id: uid(), ts: new Date().toISOString(), items, total, tendered, change });
+    message = 'Saved ✓  ' + money(total);
+  }
+
   saveJSON(K_SALES, sales);
-
   cart = [];
   $('payModal').classList.remove('show');
   renderCart();
   renderStats();
-  toast('Saved ✓  ' + money(sale.total));
+  toast(message);
+}
+
+/* =========================================================
+   RECALL / EDIT
+   ========================================================= */
+function recallSale(sale){
+  if(editingSaleId && editingSaleId !== sale.id){
+    if(!confirm('Discard the current edit and load this sale instead?')) return;
+  }
+  cart = sale.items.map((it, idx) => ({
+    pid:   'recalled-' + sale.id + '-' + idx,   // never collides with real product ids
+    name:  it.name,
+    price: it.price,                            // historical price preserved
+    qty:   it.qty
+  }));
+  editingSaleId = sale.id;
+  $('historyModal').classList.remove('show');
+  renderCart();
+  toast('Editing sale — tap UPDATE to save');
+}
+
+function cancelEdit(){
+  if(!confirm('Discard your changes to this sale?')) return;
+  editingSaleId = null;
+  cart = [];
+  renderCart();
 }
 
 /* =========================================================
@@ -574,23 +715,32 @@ function renderHistory(){
   list.innerHTML = '';
   sorted.forEach(s => {
     const d = new Date(s.ts);
-    const time = pad(d.getHours()) + ':' + pad(d.getMinutes());
-    const dateLabel = dayKey(d) === t ? 'Today' : (pad(d.getDate()) + '/' + pad(d.getMonth() + 1));
     const items = (s.items || []).map(i => i.qty + '× ' + i.name).join(', ');
+    const editedMark = s.editedAt ? '<span class="h-edited">edited</span>' : '';
 
     const row = document.createElement('div');
     row.className = 'hrow';
     row.innerHTML =
       '<div class="hmain">' +
-        '<div class="htop"><span class="htime">' + dateLabel + ' ' + time + '</span>' +
-        '<span class="hamt">' + money(s.total) + '</span></div>' +
+        '<div class="htop">' +
+          '<span class="htime">' + fmtWhen(d) + editedMark + '</span>' +
+          '<span class="hamt">' + money(s.total) + '</span>' +
+        '</div>' +
         '<div class="hitems">' + esc(items) + '</div>' +
       '</div>' +
-      '<button class="hdel" title="Delete this sale">✕</button>';
+      '<button class="hedit" title="Edit this sale">✏️</button>' +
+      '<button class="hdel"  title="Delete this sale">✕</button>';
+
+    row.querySelector('.hedit').addEventListener('click', () => recallSale(s));
 
     row.querySelector('.hdel').addEventListener('click', () => {
       if(!confirm('Delete this sale?\n' + money(s.total) + '\n' + items)) return;
       sales = sales.filter(x => x.id !== s.id);
+      if(editingSaleId === s.id){
+        editingSaleId = null;
+        cart = [];
+        renderCart();
+      }
       saveJSON(K_SALES, sales);
       renderHistory();
       renderStats();
@@ -742,6 +892,7 @@ function handleImport(data){
 $('btnPay').addEventListener('click', openPay);
 
 $('btnClear').addEventListener('click', () => {
+  if(editingSaleId){ cancelEdit(); return; }
   if(!cart.length) return;
   if(!confirm('Clear the current order?')) return;
   cart = [];
@@ -766,6 +917,9 @@ $('btnClearAll').addEventListener('click', () => {
   if(!sales.length) return;
   if(!confirm('Delete ALL ' + sales.length + ' sales?\nThis cannot be undone.\n\nTip: export first!')) return;
   sales = [];
+  editingSaleId = null;
+  cart = [];
+  renderCart();
   saveJSON(K_SALES, sales);
   renderHistory();
   renderStats();
